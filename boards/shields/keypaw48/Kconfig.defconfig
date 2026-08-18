@@ -1,0 +1,9 @@
+if SHIELD_KEYPAW48
+
+config ZMK_KEYBOARD_NAME
+    default "keypaw48"
+
+config SPI
+    default y
+
+endif # SHIELD_KEYPAW48

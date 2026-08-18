@@ -1,3 +1,4 @@
+name: zmk-keyboard-keypaw48
 build:
   settings:
     board_root: .
