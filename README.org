@@ -1,0 +1,16 @@
+#+title: keypaw48-zmk
+
+ZMK firmware config for Keypaw48.
+
+* Usage
+
+This repository is tuned for local development, and the =Makefile= should help
+you get [[https://zmk.dev/docs/development/local-toolchain/setup][the local toolchain]] set up.
+
+First, install uv, run =uv venv --allow-existing= followed by =source
+.venv/bin/activate= and =uv install=. Then =make init= and =make install-sdk=.
+Finally, run =make clean-build= or =make build= to build the firmware.
+
+* Structure
+
+This repo also keeps some of the drivers it uses in the =modules/= directory.

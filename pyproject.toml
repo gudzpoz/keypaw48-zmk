@@ -1,0 +1,8 @@
+[project]
+name = "keypaw48-zmk"
+version = "0.1.0"
+description = "A placeholder project to keep track of ZMK environment."
+requires-python = ">=3.12"
+dependencies = [
+    "zmk>=0.4.1",
+]
