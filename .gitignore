@@ -3,3 +3,6 @@
 
 # Python / uv
 .python-version
+
+# Built firmware
+build/

@@ -1,0 +1,22 @@
+/*
+ * Copyright (c) 2026 The ZMK Contributors
+ * SPDX-License-Identifier: MIT
+ */
+
+&spi2 {
+    cs-gpios = <&gpio0 11 GPIO_ACTIVE_LOW>, <&gpio0 24 GPIO_ACTIVE_LOW>;
+
+    paw3395: paw3395@1 {
+        compatible = "pixart,paw3395";
+
+        /* SPI */
+        reg = <0>; /* ignored, but necessary for SPI bindings */
+        spi-max-frequency = <8000000>;
+        irq-gpios = <&gpio0 8 GPIO_ACTIVE_LOW>;
+        cpi = <5000>;
+
+        evt-type = <INPUT_EV_REL>;
+        x-input-code = <INPUT_REL_X>;
+        y-input-code = <INPUT_REL_Y>;
+    };
+};

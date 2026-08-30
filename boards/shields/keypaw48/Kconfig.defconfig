@@ -1,6 +1,16 @@
-if SHIELD_KEYPAW48
+if SHIELD_KEYPAW48_RIGHT
 
 config ZMK_KEYBOARD_NAME
-    default "keypaw48"
+    default "Keypaw 48"
 
-endif # SHIELD_KEYPAW48
+config ZMK_SPLIT_ROLE_CENTRAL
+    default y
+
+endif # SHIELD_KEYPAW48_RIGHT
+
+if SHIELD_KEYPAW48_LEFT || SHIELD_KEYPAW48_RIGHT
+
+config ZMK_SPLIT
+    default y
+
+endif # SHIELD_KEYPAW48_*

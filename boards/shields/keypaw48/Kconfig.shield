@@ -1,2 +1,5 @@
-config SHIELD_KEYPAW48
-    def_bool $(shields_list_contains,keypaw48)
+config SHIELD_KEYPAW48_LEFT
+    def_bool $(shields_list_contains,keypaw48_left)
+
+config SHIELD_KEYPAW48_RIGHT
+    def_bool $(shields_list_contains,keypaw48_right)

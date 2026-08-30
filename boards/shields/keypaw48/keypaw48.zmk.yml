@@ -10,5 +10,9 @@ features:
   - display
   - studio
 
+siblings:
+  - keypaw48_left
+  - keypaw48_right
+
 requires:
   - pro_micro

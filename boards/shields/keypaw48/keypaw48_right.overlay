@@ -1,0 +1,18 @@
+/*
+ * Copyright (c) 2026 The ZMK Contributors
+ * SPDX-License-Identifier: MIT
+ */
+
+#include "keypaw48.dtsi"
+#include "kp-peri_right.dtsi"
+
+&default_transform {
+    col-offset = <6>;
+};
+
+/ {
+    glidepoint_listener {
+        compatible = "zmk,input-listener";
+        device = <&paw3395>;
+    };
+};

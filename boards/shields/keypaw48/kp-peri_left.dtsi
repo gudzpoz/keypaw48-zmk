@@ -1,0 +1,41 @@
+/*
+ * Copyright (c) 2026 The ZMK Contributors
+ * SPDX-License-Identifier: MIT
+ */
+
+&pinctrl {
+    i2c0_default: i2c0_default {
+        group1 {
+            psels = <NRF_PSEL(TWIM_SDA, 0, 24)>, <NRF_PSEL(TWIM_SCL, 0, 8)>;
+            bias-pull-up;
+        };
+    };
+
+    i2c0_sleep: i2c0_sleep {
+        group1 {
+            psels = <NRF_PSEL(TWIM_SDA, 0, 24)>, <NRF_PSEL(TWIM_SCL, 0, 8)>;
+            bias-pull-up;
+            low-power-enable;
+        };
+    };
+};
+
+&spi2 {
+    cs-gpios = <&gpio0 11 GPIO_ACTIVE_LOW>;
+};
+
+&i2c0 {
+    compatible = "nordic,nrf-twim";
+    status = "okay";
+
+    pinctrl-0 = <&i2c0_default>;
+    pinctrl-1 = <&i2c0_sleep>;
+    pinctrl-names = "default", "sleep";
+
+    ft6x36: ft6x36@38 {
+        compatible = "focaltech,ft5336";
+        reg = <0x38>;
+        int-gpios = <&gpio1 7 GPIO_ACTIVE_LOW>;
+        reset-gpios = <&gpio1 1 GPIO_ACTIVE_LOW>;
+    };
+};
