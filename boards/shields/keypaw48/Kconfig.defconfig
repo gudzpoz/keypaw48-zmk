@@ -1,0 +1,6 @@
+if SHIELD_KEYPAW48
+
+config ZMK_KEYBOARD_NAME
+    default "keypaw48"
+
+endif # SHIELD_KEYPAW48

@@ -1,0 +1,27 @@
+/*
+ * Copyright (c) 2026 The ZMK Contributors
+ * SPDX-License-Identifier: MIT
+ */
+
+&spi2 {
+    compatible = "nordic,nrf-spim";
+    status = "okay";
+
+    pinctrl-0 = <&spi2_oled>;
+    pinctrl-1 = <&spi2_oled_sleep>;
+    pinctrl-names = "default", "sleep";
+    cs-gpios = <&gpio0 11 GPIO_ACTIVE_LOW>;
+
+    oled: jd9613@0 {
+        compatible = "jadard,jd9613";
+
+        /* SPI */
+        reg = <0>; /* ignored, but necessary for SPI bindings */
+        dc-gpios = <&gpio1 0 GPIO_ACTIVE_HIGH>;
+        reset-gpios = <&gpio1 1 GPIO_ACTIVE_LOW>;
+        spi-max-frequency = <8000000>;
+
+        width = <126>;
+        height = <294>;
+    };
+};

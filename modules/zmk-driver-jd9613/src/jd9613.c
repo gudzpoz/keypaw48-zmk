@@ -436,7 +436,7 @@ static int jd9613_logo(const struct device *dev) {
   uint16_t y0 = (cfg->height / 2 - px / 2) & ~1;
 
   int ret = jd9613_set_window(cfg, x0, y0, x0 + px - 1, y0 + px - 1);
-  if (ret != 0) {
+  if (ret < 0) {
     return ret;
   }
 
@@ -454,7 +454,7 @@ static int jd9613_logo(const struct device *dev) {
       for (int x = 0; x < a; x++) {
         uint8_t *pixel = (uint8_t *) ((LOGO[y] & (1 << (7 - x))) ? ones : zeros);
         ret = jd9613_write_cmd(cfg, JD9613_CMD_WRMEMC, pixel, len * zoom);
-        if (ret != 0) {
+        if (ret < 0) {
           return ret;
         }
       }
@@ -487,8 +487,7 @@ static int jd9613_controller_init(const struct device *dev) {
   return 0;
 }
 
-static int jd9613_init(const struct device *dev)
-{
+static int jd9613_init(const struct device *dev) {
   const struct jd9613_cfg *cfg = dev->config;
   struct jd9613_data *data = dev->data;
 
@@ -507,17 +506,17 @@ static int jd9613_init(const struct device *dev)
   data->rounder_added = false;
 
   int ret = jd9613_controller_init(dev);
-  if (ret != 0) {
+  if (ret < 0) {
     return ret;
   }
 
   ret = jd9613_set_pixel_format(dev, data->pixel_format);
-  if (ret != 0) {
+  if (ret < 0) {
     return ret;
   }
 
   ret = jd9613_logo(dev);
-  if (ret != 0) {
+  if (ret < 0) {
     return ret;
   }
   return 0;

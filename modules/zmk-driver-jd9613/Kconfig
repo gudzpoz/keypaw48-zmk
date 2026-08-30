@@ -12,8 +12,9 @@ config JD9613
     help
         Enable driver for the Jadard JD9613 LTPS AMOLED controller.
 
-config LV_DPI_DEF
-    default 291
+###############
+# RGB Support #
+###############
 
 config LV_Z_BITS_PER_PIXEL
     default 24
@@ -21,3 +22,29 @@ config LV_Z_BITS_PER_PIXEL
 choice LV_COLOR_DEPTH
     default LV_COLOR_DEPTH_24
 endchoice
+
+config ZMK_DISPLAY_INVERT
+    default y
+
+config ZMK_DISPLAY
+    select LV_USE_THEME_MONO
+
+##############
+# Higher DPI #
+##############
+
+config LV_DPI_DEF
+    default 291
+
+choice LV_FONT_DEFAULT
+    default LV_FONT_DEFAULT_MONTSERRAT_32
+endchoice
+
+choice ZMK_LV_FONT_DEFAULT_SMALL
+    default ZMK_LV_FONT_DEFAULT_SMALL_MONTSERRAT_32
+endchoice
+
+# LVGL requires a larger memory pool for higher DPI.
+# Otherwise, the widgets might draw some random noise due to allocation failure.
+config LV_Z_MEM_POOL_SIZE
+    default 20480

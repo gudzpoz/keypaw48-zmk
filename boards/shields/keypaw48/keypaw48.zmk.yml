@@ -1,0 +1,14 @@
+file_format: "1"
+id: keypaw48
+name: keypaw48
+type: shield
+url: https://github.com/gudzpoz/keypaw48-zmk
+
+features:
+  - keys
+  - underglow
+  - display
+  - studio
+
+requires:
+  - pro_micro
