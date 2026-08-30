@@ -1,3 +1,7 @@
 zephyr_library()
 
 zephyr_library_sources_ifdef(CONFIG_JD9613 jd9613.c)
+
+zephyr_library_sources_ifdef(CONFIG_ZMK_DISPLAY_STATUS_SCREEN_CUSTOM custom_status_screen.c)
+zephyr_library_sources_ifdef(CONFIG_KEYPAW48_WIDGET_BAD_APPLE widgets/bad_apple.c)
+zephyr_library_include_directories(${APPLICATION_SOURCE_DIR}/include) # built-in widgets
