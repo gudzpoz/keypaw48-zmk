@@ -7,7 +7,7 @@
 
 #include "kp-pinctrl.dtsi"
 #include "kp-leds.dtsi"
-#include "kp-oled.dtsi"
+#include "kp-spi.dtsi"
 
 #include "keypaw48-layouts.dtsi"
 
@@ -58,5 +58,10 @@
         compatible = "zmk,ext-power-generic";
         control-gpios = <&gpio1 2 GPIO_ACTIVE_HIGH>;
         init-delay-ms = <100>;
+    };
+
+    glidepoint_listener {
+        compatible = "zmk,input-listener";
+        device = <&paw3395>;
     };
 };

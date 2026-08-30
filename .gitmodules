@@ -1,3 +1,6 @@
 [submodule "zmk"]
 	path = zmk
 	url = https://github.com/zmkfirmware/zmk.git
+[submodule "modules/zmk-paw3395-driver"]
+	path = modules/zmk-paw3395-driver
+	url = https://github.com/badjeff/zmk-paw3395-driver.git

@@ -17,16 +17,38 @@
         };
     };
 
-    spi2_oled: spi2_oled {
+    spi2_default: spi2_default {
         group1 {
-            psels = <NRF_PSEL(SPIM_SCK, 0, 17)>, <NRF_PSEL(SPIM_MOSI, 0, 20)>;
+            psels = <NRF_PSEL(SPIM_SCK, 0, 17)>, <NRF_PSEL(SPIM_MOSI, 0, 20)>, <NRF_PSEL(SPIM_MISO, 0, 22)>;
         };
     };
 
-    spi2_oled_sleep: spi2_oled_sleep {
+    spi2_sleep: spi2_sleep {
         group1 {
-            psels = <NRF_PSEL(SPIM_SCK, 0, 17)>, <NRF_PSEL(SPIM_MOSI, 0, 20)>;
+            psels = <NRF_PSEL(SPIM_SCK, 0, 17)>, <NRF_PSEL(SPIM_MOSI, 0, 20)>, <NRF_PSEL(SPIM_MISO, 0, 22)>;
             low-power-enable;
         };
+    };
+};
+
+&spi2 {
+    compatible = "nordic,nrf-spim";
+    status = "okay";
+
+    pinctrl-0 = <&spi2_default>;
+    pinctrl-1 = <&spi2_sleep>;
+    pinctrl-names = "default", "sleep";
+    cs-gpios = <&gpio0 11 GPIO_ACTIVE_LOW>, <&gpio0 24 GPIO_ACTIVE_LOW>;
+
+    oled: jd9613@0 {
+        compatible = "jadard,jd9613";
+
+        reg = <0>;
+        dc-gpios = <&gpio1 0 GPIO_ACTIVE_HIGH>;
+        reset-gpios = <&gpio1 1 GPIO_ACTIVE_LOW>;
+        spi-max-frequency = <8000000>;
+
+        width = <126>;
+        height = <294>;
     };
 };
