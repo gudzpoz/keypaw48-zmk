@@ -1,0 +1,32 @@
+# Copyright (c) 2024 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+description: JD9613 LTPS AMOLED display controller
+
+compatible: "jadard,jd9613"
+
+include: [spi-device.yaml, display-controller.yaml]
+
+properties:
+  dc-gpios:
+    type: phandle-array
+    description: Data/Command select pin
+
+      DC high selects data, DC low selects command.
+
+  reset-gpios:
+    type: phandle-array
+    description: Reset pin (active-low)
+
+      Pulled low to reset the panel, then released high.
+      Should be configured as GPIO_ACTIVE_LOW.
+
+  width:
+    type: int
+    required: true
+    description: Panel width in pixels
+
+  height:
+    type: int
+    required: true
+    description: Panel height in pixels

@@ -1,0 +1,23 @@
+# Copyright (c) 2024 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+# JD9613 display controller configuration options
+
+config JD9613
+    bool "JD9613 compatible display controller driver"
+    default y
+    depends on DT_HAS_JADARD_JD9613_ENABLED
+    select SPI
+    select DISPLAY
+    help
+        Enable driver for the Jadard JD9613 LTPS AMOLED controller.
+
+config LV_DPI_DEF
+    default 291
+
+config LV_Z_BITS_PER_PIXEL
+    default 24
+
+choice LV_COLOR_DEPTH
+    default LV_COLOR_DEPTH_24
+endchoice

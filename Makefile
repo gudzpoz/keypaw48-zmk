@@ -32,7 +32,7 @@ clean-build: BUILD_FLAGS := -p
 clean-build: build
 
 build:
-	cd zmk/app && west build $(BUILD_FLAGS) -b "$(BOARD)" -- \
+	cd zmk/app && west build $(BUILD_FLAGS) -b "$(BOARD)" -S zmk-usb-logging -- \
 		-DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
 		-DSHIELD=keypaw48 \
 		-DZMK_EXTRA_MODULES="$(ZMK_EXTRA_MODULES)" \
