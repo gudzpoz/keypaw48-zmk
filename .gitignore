@@ -6,3 +6,6 @@
 
 # Built firmware
 build/
+
+# Generated
+modules/zmk-driver-jd9613/src/widgets/icons/

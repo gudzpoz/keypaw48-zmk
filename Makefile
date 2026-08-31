@@ -29,6 +29,9 @@ install-sdk:
 	patch zmk/zephyr/cmake/modules/FindZephyr-sdk.cmake scripts/zephyr-issue-113746.patch
 	cd zmk && west sdk install --install-dir="$(shell pwd)/.sdk" -t arm-zephyr-eabi
 
+resources:
+	python scripts/gen_material_icons.py modules/zmk-driver-jd9613/src/widgets/icons
+
 $(SHIELD_SIDES): %:
 	cd zmk/app && west build $(BUILD_FLAGS) -b "$(BOARD)" -S zmk-usb-logging -- \
 		-DCMAKE_EXPORT_COMPILE_COMMANDS=ON \

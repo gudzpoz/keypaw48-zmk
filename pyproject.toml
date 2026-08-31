@@ -4,5 +4,9 @@ version = "0.1.0"
 description = "A placeholder project to keep track of ZMK environment."
 requires-python = ">=3.12"
 dependencies = [
+    "lz4>=4.4.5",
+    "numpy>=2.5.2",
+    "pypng>=0.20220715.0",
+    "python-material-icons>=0.3.2",
     "zmk>=0.4.1",
 ]
