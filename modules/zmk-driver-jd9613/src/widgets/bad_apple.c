@@ -150,6 +150,7 @@ int zmk_widget_bad_apple_init(struct zmk_widget_bad_apple *widget, lv_obj_t *par
   expand_dictionary();
 
   widget->obj = lv_obj_create(parent);
+  lv_aux_flat_container(widget->obj);
   lv_obj_set_size(widget->obj, BAD_APPLE_WIDTH, BAD_APPLE_HEIGHT);
   widget->canvas = lv_canvas_create(widget->obj);
   lv_canvas_set_buffer(widget->canvas, widget->cbuf, BAD_APPLE_WIDTH,

@@ -49,17 +49,17 @@ endchoice
 config LV_Z_MEM_POOL_SIZE
     default 20480
 
-###############
-# RGB Widgets #
-###############
+########################
+# Custom Status Screen #
+########################
 
 choice ZMK_DISPLAY_STATUS_SCREEN
     default ZMK_DISPLAY_STATUS_SCREEN_CUSTOM
 endchoice
 
 config ZMK_DISPLAY_STATUS_SCREEN_CUSTOM
-    imply KEYPAW48_WIDGET_BAD_APPLE
+    imply ZMK_WIDGET_BAD_APPLE
 
-config KEYPAW48_WIDGET_BAD_APPLE
+config ZMK_WIDGET_BAD_APPLE
     bool "Bad Apple playback widget for keypaw48"
     select LV_USE_CANVAS
