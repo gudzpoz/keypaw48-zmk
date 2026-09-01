@@ -36,6 +36,5 @@
         compatible = "focaltech,ft5336";
         reg = <0x38>;
         int-gpios = <&gpio1 7 GPIO_ACTIVE_LOW>;
-        reset-gpios = <&gpio1 1 GPIO_ACTIVE_LOW>;
     };
 };

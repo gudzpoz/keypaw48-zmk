@@ -191,12 +191,19 @@ static inline int jd9613_write_data(const struct jd9613_cfg *cfg,
   return 0;
 }
 
-static void jd9613_hw_reset(const struct jd9613_cfg *cfg) {
-  /* RESX is active-low; reset-gpios should be GPIO_ACTIVE_LOW in DT */
-  gpio_pin_set_dt(&cfg->reset, 1);
-  k_sleep(K_USEC(JD9613_RESET_PULSE_US));
-  gpio_pin_set_dt(&cfg->reset, 0);
+static int jd9613_reset(const struct jd9613_cfg *cfg) {
+  if (cfg->reset.port != NULL) {
+    gpio_pin_set_dt(&cfg->reset, 1);
+    k_sleep(K_USEC(JD9613_RESET_PULSE_US));
+    gpio_pin_set_dt(&cfg->reset, 0);
+  } else {
+    int ret = jd9613_write_cmd(cfg, JD9613_CMD_SWRESET, NULL, 0);
+    if (ret < 0) {
+      return ret;
+    }
+  }
   k_sleep(K_MSEC(JD9613_RESET_DELAY_MS));
+  return 0;
 }
 
 static int jd9613_set_window(const struct jd9613_cfg *cfg, uint16_t x0, uint16_t y0,
@@ -468,7 +475,7 @@ static int jd9613_controller_init(const struct device *dev) {
   const struct jd9613_cfg *cfg = dev->config;
   int ret;
 
-  jd9613_hw_reset(cfg);
+  jd9613_reset(cfg);
 
   const uint8_t *addr = jd9613_init_seq;
   uint8_t cmd, len;
@@ -496,7 +503,10 @@ static int jd9613_init(const struct device *dev) {
     return -ENODEV;
   }
 
-  if (gpio_pin_configure_dt(&cfg->dc, GPIO_OUTPUT_INACTIVE) < 0 ||
+  if (gpio_pin_configure_dt(&cfg->dc, GPIO_OUTPUT_INACTIVE) < 0) {
+    return -EIO;
+  }
+  if (cfg->reset.port != NULL &&
       gpio_pin_configure_dt(&cfg->reset, GPIO_OUTPUT_INACTIVE) < 0) {
     return -EIO;
   }
@@ -535,9 +545,11 @@ static const struct display_driver_api jd9613_driver_api = {
   static struct jd9613_data jd9613_data_##inst;                         \
   static const struct jd9613_cfg jd9613_cfg_##inst = {                  \
     .bus = SPI_DT_SPEC_INST_GET(inst,                                   \
-                                SPI_OP_MODE_MASTER | SPI_WORD_SET(8), 0), \
+                                SPI_OP_MODE_MASTER | SPI_WORD_SET(8) |  \
+                                SPI_MODE_CPOL | SPI_MODE_CPHA |         \
+                                SPI_TRANSFER_MSB , 0),                  \
     .dc = GPIO_DT_SPEC_INST_GET(inst, dc_gpios),                        \
-    .reset = GPIO_DT_SPEC_INST_GET(inst, reset_gpios),                  \
+    .reset = GPIO_DT_SPEC_INST_GET_OR(inst, reset_gpios, {0}),          \
     .width = DT_INST_PROP(inst, width),                                 \
     .height = DT_INST_PROP(inst, height),                               \
   };                                                                    \

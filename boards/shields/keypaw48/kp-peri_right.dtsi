@@ -9,8 +9,7 @@
     paw3395: paw3395@1 {
         compatible = "pixart,paw3395";
 
-        /* SPI */
-        reg = <0>; /* ignored, but necessary for SPI bindings */
+        reg = <1>;
         spi-max-frequency = <8000000>;
         irq-gpios = <&gpio0 8 GPIO_ACTIVE_LOW>;
         cpi = <5000>;

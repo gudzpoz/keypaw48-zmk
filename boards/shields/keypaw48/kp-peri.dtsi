@@ -45,7 +45,6 @@
 
         reg = <0>;
         dc-gpios = <&gpio1 0 GPIO_ACTIVE_HIGH>;
-        reset-gpios = <&gpio1 1 GPIO_ACTIVE_LOW>;
         spi-max-frequency = <8000000>;
 
         width = <126>;
