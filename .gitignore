@@ -9,3 +9,8 @@ build/
 
 # Generated
 modules/zmk-driver-jd9613/src/widgets/icons/
+__pycache__/
+
+# Misc
+# Download from source
+scripts/LVGLImage.py

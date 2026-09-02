@@ -31,21 +31,21 @@ class EmbeddedIcon:
 
 ICONS: list[EmbeddedIcon] = [
     EmbeddedIcon('battery_full', 48, -90, AnimationSpec(16, None, 'right')),
-    EmbeddedIcon('bluetooth_disabled', 48, 0, None),
-    EmbeddedIcon('bluetooth_connected', 48, 0, None),
-    EmbeddedIcon('bluetooth_searching', 48, 0, AnimationSpec(3, np.logical_and(
-        np.triu(np.ones((48, 48))), np.tril(np.ones((48, 48)))[:, ::-1],
+    EmbeddedIcon('bluetooth_disabled', 32, 0, None),
+    EmbeddedIcon('bluetooth_connected', 32, 0, None),
+    EmbeddedIcon('bluetooth_searching', 32, 0, AnimationSpec(3, np.logical_and(
+        np.triu(np.ones((32, 32))), np.tril(np.ones((32, 32)))[:, ::-1],
     ), 'right')),
     EmbeddedIcon('bolt', 32, 0, None),
-    EmbeddedIcon('energy_savings_leaf', 48, 0, None),
-    EmbeddedIcon('keyboard', 48, 0, None),
-    EmbeddedIcon('keyboard_capslock', 48, 0, None),
-    EmbeddedIcon('speed', 48, 0, None),
-    EmbeddedIcon('sports_esports', 48, 0, None),
-    EmbeddedIcon('usb', 48, 0, None),
-    EmbeddedIcon('usb_off', 48, 0, None),
-    EmbeddedIcon('wifi_tethering', 48, 0, None),
-    EmbeddedIcon('wifi_tethering_off', 48, 0, None),
+    EmbeddedIcon('energy_savings_leaf', 32, 0, None),
+    EmbeddedIcon('keyboard', 32, 0, None),
+    EmbeddedIcon('keyboard_capslock', 32, 0, None),
+    EmbeddedIcon('speed', 32, 0, None),
+    EmbeddedIcon('sports_esports', 32, 0, None),
+    EmbeddedIcon('usb', 32, 0, None),
+    EmbeddedIcon('usb_off', 32, 0, None),
+    EmbeddedIcon('wifi_tethering', 32, 0, None),
+    EmbeddedIcon('wifi_tethering_off', 32, 0, None),
 ]
 MATERIAL = MaterialIcons()
 
@@ -85,9 +85,9 @@ def generate_embed(icon: EmbeddedIcon, dest: Path):
 
     file = dest.joinpath(f'{icon.id}.png')
     Image.fromarray(im).save(file)
-    LVGLImage().from_png(str(file), cf=ColorFormat.I4 if icon.animation else None).to_c_array(
+    LVGLImage().from_png(str(file), cf=ColorFormat.I4).to_c_array(
         str(dest.joinpath(f'{icon.id}.c')),
-        CompressMethod.NONE if icon.animation else CompressMethod.RLE,
+        CompressMethod.NONE,  # TODO: CompressionMethod.RLE doesn't work?
         f'icon_{icon.id}',
     )
 

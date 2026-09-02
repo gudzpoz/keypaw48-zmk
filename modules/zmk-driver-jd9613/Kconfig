@@ -37,11 +37,11 @@ config LV_DPI_DEF
     default 291
 
 choice LV_FONT_DEFAULT
-    default LV_FONT_DEFAULT_MONTSERRAT_32
+    default LV_FONT_DEFAULT_MONTSERRAT_28
 endchoice
 
 choice ZMK_LV_FONT_DEFAULT_SMALL
-    default ZMK_LV_FONT_DEFAULT_SMALL_MONTSERRAT_32
+    default ZMK_LV_FONT_DEFAULT_SMALL_MONTSERRAT_20
 endchoice
 
 # LVGL requires a larger memory pool for higher DPI.
@@ -59,7 +59,59 @@ endchoice
 
 config ZMK_DISPLAY_STATUS_SCREEN_CUSTOM
     imply ZMK_WIDGET_BAD_APPLE
+    imply ZMK_WIDGET_RGB_BATTERY_STATUS
+    imply ZMK_WIDGET_RGB_OUTPUT_STATUS
+    imply ZMK_WIDGET_RGB_PERIPHERAL_STATUS
+    imply ZMK_WIDGET_RGB_LAYER_STATUS
+    imply ZMK_WIDGET_RGB_WPM_STATUS
 
 config ZMK_WIDGET_BAD_APPLE
     bool "Bad Apple playback widget for keypaw48"
     select LV_USE_CANVAS
+
+###############
+# RGB Widgets #
+###############
+
+config ZMK_WIDGET_RGB_ICONS
+    bool
+    # Implied by any widget that uses icon images
+    select LV_USE_RLE
+
+config ZMK_WIDGET_RGB_BATTERY_STATUS
+    bool "RGB battery status widget"
+    depends on ZMK_BATTERY_REPORTING
+    select LV_USE_FLEX
+    select LV_USE_IMAGE
+    select LV_USE_LABEL
+    select ZMK_WIDGET_RGB_ICONS
+
+config ZMK_WIDGET_RGB_OUTPUT_STATUS
+    bool "RGB output status widget"
+    depends on !ZMK_SPLIT || ZMK_SPLIT_ROLE_CENTRAL
+    select LV_USE_FLEX
+    select LV_USE_IMAGE
+    select LV_USE_LABEL
+    select ZMK_WIDGET_RGB_ICONS
+
+config ZMK_WIDGET_RGB_PERIPHERAL_STATUS
+    bool "RGB peripheral status widget"
+    depends on BT && ZMK_SPLIT_BLE && !ZMK_SPLIT_ROLE_CENTRAL
+    select LV_USE_IMAGE
+    select ZMK_WIDGET_RGB_ICONS
+
+config ZMK_WIDGET_RGB_LAYER_STATUS
+    bool "RGB layer status widget"
+    depends on !ZMK_SPLIT || ZMK_SPLIT_ROLE_CENTRAL
+    select LV_USE_FLEX
+    select LV_USE_IMAGE
+    select LV_USE_LABEL
+    select ZMK_WIDGET_RGB_ICONS
+
+config ZMK_WIDGET_RGB_WPM_STATUS
+    bool "RGB WPM status widget"
+    depends on !ZMK_SPLIT || ZMK_SPLIT_ROLE_CENTRAL
+    select LV_USE_FLEX
+    select LV_USE_IMAGE
+    select LV_USE_LABEL
+    select ZMK_WPM

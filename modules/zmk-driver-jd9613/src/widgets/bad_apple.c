@@ -13,6 +13,7 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 #include "bad_apple_data.h"
 #include "bad_apple.h"
+#include "styling.h"
 
 /* MSB-first bit reader over a byte range. */
 typedef struct {
