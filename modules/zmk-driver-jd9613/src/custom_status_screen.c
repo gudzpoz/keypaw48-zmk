@@ -7,6 +7,8 @@
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 #include "widgets/bad_apple.h"
+#include "widgets/nyan_cat.h"
+
 #include "widgets/battery_status.h"
 #include "widgets/output_status.h"
 #include "widgets/wpm_status.h"
@@ -36,6 +38,10 @@ static struct zmk_widget_rgb_layer_status layer_status_widget;
 
 #if IS_ENABLED(CONFIG_ZMK_WIDGET_BAD_APPLE)
 static struct zmk_widget_bad_apple bad_apple_widget;
+#endif
+
+#if IS_ENABLED(CONFIG_ZMK_WIDGET_NYAN_CAT)
+static struct zmk_widget_nyan_cat nyan_cat_widget;
 #endif
 
 lv_obj_t *zmk_display_status_screen() {
@@ -91,6 +97,11 @@ lv_obj_t *zmk_display_status_screen() {
 #if IS_ENABLED(CONFIG_ZMK_WIDGET_BAD_APPLE)
   zmk_widget_bad_apple_init(&bad_apple_widget, screen);
   ALIGN_TOP(zmk_widget_bad_apple_obj(&bad_apple_widget), 2)
+#endif
+
+#if IS_ENABLED(CONFIG_ZMK_WIDGET_NYAN_CAT)
+  zmk_widget_nyan_cat_init(&nyan_cat_widget, screen);
+  ALIGN_TOP(zmk_widget_nyan_cat_obj(&nyan_cat_widget), 2)
 #endif
 
   return screen;

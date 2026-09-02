@@ -4,6 +4,8 @@ zephyr_library_sources_ifdef(CONFIG_JD9613 jd9613.c)
 
 zephyr_library_sources_ifdef(CONFIG_ZMK_DISPLAY_STATUS_SCREEN_CUSTOM custom_status_screen.c)
 zephyr_library_sources_ifdef(CONFIG_ZMK_WIDGET_BAD_APPLE widgets/bad_apple.c)
+zephyr_library_sources_ifdef(CONFIG_ZMK_WIDGET_NYAN_CAT widgets/nyan_cat.c)
+
 zephyr_library_sources_ifdef(CONFIG_ZMK_WIDGET_RGB_BATTERY_STATUS widgets/battery_status.c)
 zephyr_library_sources_ifdef(CONFIG_ZMK_WIDGET_RGB_LAYER_STATUS widgets/layer_status.c)
 zephyr_library_sources_ifdef(CONFIG_ZMK_WIDGET_RGB_OUTPUT_STATUS widgets/output_status.c)

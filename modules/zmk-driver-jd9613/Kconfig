@@ -59,6 +59,7 @@ endchoice
 
 config ZMK_DISPLAY_STATUS_SCREEN_CUSTOM
     imply ZMK_WIDGET_BAD_APPLE
+    imply ZMK_WIDGET_NYAN_CAT
     imply ZMK_WIDGET_RGB_BATTERY_STATUS
     imply ZMK_WIDGET_RGB_OUTPUT_STATUS
     imply ZMK_WIDGET_RGB_PERIPHERAL_STATUS
@@ -68,6 +69,11 @@ config ZMK_DISPLAY_STATUS_SCREEN_CUSTOM
 config ZMK_WIDGET_BAD_APPLE
     bool "Bad Apple playback widget for keypaw48"
     select LV_USE_CANVAS
+
+config ZMK_WIDGET_NYAN_CAT
+    bool "Nyan cat GIF widget for keypaw48"
+    select LV_USE_GIF
+    select ZMK_WIDGET_RGB_ICONS
 
 ###############
 # RGB Widgets #

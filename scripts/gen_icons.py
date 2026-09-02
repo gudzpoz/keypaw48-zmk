@@ -11,7 +11,7 @@ import numpy as np
 from material_icons import MaterialIcons, IconStyle
 from PIL import Image
 
-from LVGLImage import ColorFormat, CompressMethod, LVGLImage
+from LVGLImage import ColorFormat, CompressMethod, LVGLImage, RAWImage
 
 
 @dataclass
@@ -46,6 +46,8 @@ ICONS: list[EmbeddedIcon] = [
     EmbeddedIcon('usb_off', 32, 0, None),
     EmbeddedIcon('wifi_tethering', 32, 0, None),
     EmbeddedIcon('wifi_tethering_off', 32, 0, None),
+
+    EmbeddedIcon('file:scripts/nyan_cat.gif', -1, 0, None),
 ]
 MATERIAL = MaterialIcons()
 
@@ -92,6 +94,15 @@ def generate_embed(icon: EmbeddedIcon, dest: Path):
     )
 
 
+def generate_raw(icon: EmbeddedIcon, dest: Path):
+    file = Path(icon.id[len('file:'):])
+    icon.id = file.with_suffix('').name
+    img = RAWImage().from_file(str(file), ColorFormat.RAW).to_c_array(
+        str(dest.joinpath(f'{icon.id}.c')),
+        f'icon_{icon.id}',
+    )
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print(f'Usage: {sys.argv[0]} <output_dir>')
@@ -100,7 +111,10 @@ if __name__ == "__main__":
     path = Path(sys.argv[1])
     path.mkdir(parents=True, exist_ok=True)
     for icon in ICONS:
-        generate_embed(icon, path)
+        if icon.id.startswith('file:'):
+            generate_raw(icon, path)
+        else:
+            generate_embed(icon, path)
 
     with path.joinpath('icons.c').open('w') as f:
         f.write(f'''#define LV_LVGL_H_INCLUDE_SYSTEM 1

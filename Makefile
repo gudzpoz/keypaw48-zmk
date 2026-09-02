@@ -30,7 +30,7 @@ install-sdk:
 	cd zmk && west sdk install --install-dir="$(shell pwd)/.sdk" -t arm-zephyr-eabi
 
 resources:
-	python scripts/gen_material_icons.py modules/zmk-driver-jd9613/src/widgets/icons
+	python scripts/gen_icons.py modules/zmk-driver-jd9613/src/widgets/icons
 
 $(SHIELD_SIDES): %:
 	cd zmk/app && west build $(BUILD_FLAGS) -b "$(BOARD)" -S zmk-usb-logging -- \
