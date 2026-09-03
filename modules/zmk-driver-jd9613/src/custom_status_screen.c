@@ -6,41 +6,40 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
-#include "widgets/bad_apple.h"
-#include "widgets/nyan_cat.h"
-
-#include "widgets/battery_status.h"
-#include "widgets/output_status.h"
-#include "widgets/wpm_status.h"
-#include "widgets/peripheral_status.h"
-#include "widgets/layer_status.h"
 #include "widgets/styling.h"
 
 #if IS_ENABLED(CONFIG_ZMK_WIDGET_RGB_BATTERY_STATUS)
+#include "widgets/battery_status.h"
 static struct zmk_widget_rgb_battery_status battery_status_widget;
 #endif
 
 #if IS_ENABLED(CONFIG_ZMK_WIDGET_RGB_OUTPUT_STATUS)
+#include "widgets/output_status.h"
 static struct zmk_widget_rgb_output_status output_status_widget;
 #endif
 
 #if IS_ENABLED(CONFIG_ZMK_WIDGET_RGB_WPM_STATUS)
+#include "widgets/wpm_status.h"
 static struct zmk_widget_rgb_wpm_status wpm_status_widget;
 #endif
 
 #if IS_ENABLED(CONFIG_ZMK_WIDGET_RGB_PERIPHERAL_STATUS)
+#include "widgets/peripheral_status.h"
 static struct zmk_widget_rgb_peripheral_status peripheral_status_widget;
 #endif
 
 #if IS_ENABLED(CONFIG_ZMK_WIDGET_RGB_LAYER_STATUS)
+#include "widgets/layer_status.h"
 static struct zmk_widget_rgb_layer_status layer_status_widget;
 #endif
 
 #if IS_ENABLED(CONFIG_ZMK_WIDGET_BAD_APPLE)
+#include "widgets/bad_apple.h"
 static struct zmk_widget_bad_apple bad_apple_widget;
 #endif
 
 #if IS_ENABLED(CONFIG_ZMK_WIDGET_NYAN_CAT)
+#include "widgets/nyan_cat.h"
 static struct zmk_widget_nyan_cat nyan_cat_widget;
 #endif
 
@@ -69,9 +68,6 @@ lv_obj_t *zmk_display_status_screen() {
 #if IS_ENABLED(CONFIG_ZMK_WIDGET_RGB_BATTERY_STATUS)
   zmk_widget_rgb_battery_status_init(&battery_status_widget, screen);
   ALIGN_TOP(zmk_widget_rgb_battery_status_obj(&battery_status_widget), 0)
-  lv_obj_set_style_text_font(
-      zmk_widget_rgb_battery_status_obj(&battery_status_widget),
-      lv_theme_get_font_small(screen), LV_PART_MAIN);
 #endif
 
 #if IS_ENABLED(CONFIG_ZMK_WIDGET_RGB_OUTPUT_STATUS)
@@ -101,7 +97,7 @@ lv_obj_t *zmk_display_status_screen() {
 
 #if IS_ENABLED(CONFIG_ZMK_WIDGET_NYAN_CAT)
   zmk_widget_nyan_cat_init(&nyan_cat_widget, screen);
-  ALIGN_TOP(zmk_widget_nyan_cat_obj(&nyan_cat_widget), 2)
+  ALIGN_BOTTOM(zmk_widget_nyan_cat_obj(&nyan_cat_widget), 2)
 #endif
 
   return screen;

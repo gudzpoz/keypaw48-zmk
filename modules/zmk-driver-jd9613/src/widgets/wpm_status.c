@@ -56,7 +56,7 @@ void wpm_status_update_cb(struct wpm_status_state state) {
 
 ZMK_DISPLAY_WIDGET_LISTENER(widget_wpm_status, struct wpm_status_state, wpm_status_update_cb,
                             wpm_status_get_state)
-  ZMK_SUBSCRIPTION(widget_wpm_status, zmk_wpm_state_changed);
+ZMK_SUBSCRIPTION(widget_wpm_status, zmk_wpm_state_changed);
 
 int zmk_widget_rgb_wpm_status_init(struct zmk_widget_rgb_wpm_status *widget, lv_obj_t *parent) {
   widget->obj = lv_obj_create(parent);

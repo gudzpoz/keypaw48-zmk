@@ -3,14 +3,17 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include "layouts/flex/lv_flex.h"
-#include <string.h>
 #include <zephyr/kernel.h>
+
 #include <zmk/display.h>
+#include <zmk/events/hid_indicators_changed.h>
 #include <zmk/events/layer_state_changed.h>
 #include <zmk/event_manager.h>
 #include <zmk/endpoints.h>
+#include <zmk/hid_indicators.h>
 #include <zmk/keymap.h>
+
+#include <dt-bindings/zmk/hid_indicators.h>
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
@@ -22,6 +25,7 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 static sys_slist_t widgets = SYS_SLIST_STATIC_INIT(&widgets);
 
 struct layer_status_state {
+  bool caps_lock;
   const char *labels[ZMK_WIDGET_RGB_LAYER_STATUS_MAX_N];
 };
 
@@ -38,6 +42,10 @@ static void set_layer_symbols(struct zmk_widget_rgb_layer_status *widget, struct
       lv_obj_remove_flag(label, LV_OBJ_FLAG_HIDDEN);
     }
   }
+
+  lv_image_set_src(widget->icon, state.caps_lock ? &icon_keyboard_capslock : &icon_keyboard);
+  lv_obj_set_style_border_color(widget->icon, state.caps_lock ? COLOR_ACTIVE : COLOR_INACTIVE, LV_PART_MAIN);
+  lv_obj_set_style_border_width(widget->icon, state.caps_lock ? 1 : 0, LV_PART_MAIN);
 }
 
 static void layer_status_update_cb(struct layer_status_state state) {
@@ -46,7 +54,11 @@ static void layer_status_update_cb(struct layer_status_state state) {
 }
 
 static struct layer_status_state layer_status_get_state(const zmk_event_t *eh) {
-  struct layer_status_state state = {.labels = {NULL}};
+  struct layer_status_state state = {
+    .caps_lock = (zmk_hid_indicators_get_current_profile() &
+                  HID_INDICATOR_CAPS_LOCK) != 0,
+    .labels = {NULL},
+  };
 
   int n = 0;
   for (zmk_keymap_layer_index_t l = 0; l < ZMK_KEYMAP_LAYERS_LEN; l++) {
@@ -75,8 +87,8 @@ static struct layer_status_state layer_status_get_state(const zmk_event_t *eh) {
 
 ZMK_DISPLAY_WIDGET_LISTENER(widget_layer_status, struct layer_status_state, layer_status_update_cb,
                             layer_status_get_state)
-
-  ZMK_SUBSCRIPTION(widget_layer_status, zmk_layer_state_changed);
+ZMK_SUBSCRIPTION(widget_layer_status, zmk_layer_state_changed);
+ZMK_SUBSCRIPTION(widget_layer_status, zmk_hid_indicators_changed);
 
 static lv_style_t style_framed;
 static bool style_inited = false;
@@ -103,7 +115,8 @@ int zmk_widget_rgb_layer_status_init(struct zmk_widget_rgb_layer_status *widget,
     lv_obj_t *label = lv_label_create(widget->obj);
     lv_obj_add_flag(label, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_style(label, &style_framed, 0);
-    lv_obj_set_style_text_color(label, COLOR_ACTIVE, LV_PART_MAIN); // TODO: palette
+    lv_obj_set_style_text_color(
+        label, TABLEAU_COLORS[i % ARRAY_SIZE(TABLEAU_COLORS)], LV_PART_MAIN);
     widget->layers[i] = label;
   }
 

@@ -103,7 +103,7 @@ static void output_status_anim_cb(lv_timer_t *timer) {
 
 ZMK_DISPLAY_WIDGET_LISTENER(widget_output_status, struct output_status_state,
                             output_status_update_cb, get_state)
-  ZMK_SUBSCRIPTION(widget_output_status, zmk_endpoint_changed);
+ZMK_SUBSCRIPTION(widget_output_status, zmk_endpoint_changed);
 // We don't get an endpoint changed event when the active profile connects/disconnects
 // but there wasn't another endpoint to switch from/to, so update on BLE events too.
 #if defined(CONFIG_ZMK_BLE)

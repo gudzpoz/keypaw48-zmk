@@ -295,7 +295,7 @@ static int jd9613_write(const struct device *dev, const uint16_t x, const uint16
   size_t len = desc->buf_size;
   int ret;
 
-  LOG_INF("w %dx%d+%dx%d(%d:%d:%s)", (int)desc->width, (int)desc->height,
+  LOG_DBG("w %dx%d+%dx%d(%d:%d:%s)", (int)desc->width, (int)desc->height,
           (int)x, (int)y, (int)len, (int)desc->pitch,
           desc->frame_incomplete ? "cont"
                                  : "end");

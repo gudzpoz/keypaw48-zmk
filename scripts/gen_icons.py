@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 
 from material_icons import MaterialIcons, IconStyle
-from PIL import Image
+from PIL import Image, ImageSequence
 
 from LVGLImage import ColorFormat, CompressMethod, LVGLImage, RAWImage
 
@@ -89,18 +89,46 @@ def generate_embed(icon: EmbeddedIcon, dest: Path):
     Image.fromarray(im).save(file)
     LVGLImage().from_png(str(file), cf=ColorFormat.I4).to_c_array(
         str(dest.joinpath(f'{icon.id}.c')),
-        CompressMethod.NONE,  # TODO: CompressionMethod.RLE doesn't work?
+        CompressMethod.NONE if icon.animation else CompressMethod.RLE,
         f'icon_{icon.id}',
     )
+    return f'LV_IMG_DECLARE(icon_{icon.id});'
 
 
 def generate_raw(icon: EmbeddedIcon, dest: Path):
     file = Path(icon.id[len('file:'):])
     icon.id = file.with_suffix('').name
-    img = RAWImage().from_file(str(file), ColorFormat.RAW).to_c_array(
-        str(dest.joinpath(f'{icon.id}.c')),
-        f'icon_{icon.id}',
-    )
+    if file.suffix.lower() == '.png':
+        LVGLImage().from_png(str(file), cf=ColorFormat.I4).to_c_array(
+            str(dest.joinpath(f'{icon.id}.c')),
+            CompressMethod.RLE,
+            f'icon_{icon.id}',
+        )
+        return f'LV_IMG_DECLARE(icon_{icon.id});'
+    elif file.suffix.lower() == '.gif':
+        gif = Image.open(file)
+        pngs = []
+        for i, frame in enumerate(ImageSequence.Iterator(gif)):
+            png = dest.joinpath(f'{icon.id}_{i}.png')
+            frame.save(png)
+            LVGLImage().from_png(str(png)).to_c_array(
+                str(dest.joinpath(f'{icon.id}_{i}.c')),
+                CompressMethod.RLE,
+                f'icon_{icon.id}_{i}',
+            )
+            pngs.append(i)
+        with path.joinpath(f'{icon.id}.c').open('w') as f:
+            f.write(f'''#include <lvgl.h>
+
+{'\n'.join(f'#include "{icon.id}_{i}.c"' for i in pngs)}
+
+const lv_image_dsc_t *icon_anim_{icon.id}[] = {{
+{'\n'.join(f'  &icon_{icon.id}_{i},' for i in pngs)}
+}};
+''')
+        return f'extern const lv_image_dsc_t *icon_anim_{icon.id}[{len(pngs)}];'
+    else:
+        raise Exception(f'Unsupported file: {file}')
 
 
 if __name__ == "__main__":
@@ -110,11 +138,12 @@ if __name__ == "__main__":
 
     path = Path(sys.argv[1])
     path.mkdir(parents=True, exist_ok=True)
+    declarations = []
     for icon in ICONS:
         if icon.id.startswith('file:'):
-            generate_raw(icon, path)
+            declarations.append(generate_raw(icon, path))
         else:
-            generate_embed(icon, path)
+            declarations.append(generate_embed(icon, path))
 
     with path.joinpath('icons.c').open('w') as f:
         f.write(f'''#define LV_LVGL_H_INCLUDE_SYSTEM 1
@@ -129,7 +158,7 @@ if __name__ == "__main__":
 
 #include <lvgl.h>
 
-{'\n'.join([f'LV_IMG_DECLARE(icon_{icon.id});' for icon in ICONS])}
+{'\n'.join(declarations)}
 
 {'\n'.join([f'#define DATA_LEN_icon_{icon.id} {icon.size ** 2 + 4 * 16}' for icon in ICONS if icon.animation])}
 {'\n'.join([f'#define ANIM_STEPS_icon_{icon.id} {icon.animation.steps}' for icon in ICONS if icon.animation])}

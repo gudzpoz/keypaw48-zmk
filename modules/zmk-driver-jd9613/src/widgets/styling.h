@@ -5,6 +5,19 @@
 #define COLOR_INACTIVE lv_color_hex(0x773333)
 #define COLOR_ACTIVE lv_color_hex(0x00FFFF)
 
+static const lv_color_t TABLEAU_COLORS[] = {
+  {.red = 0x1f, .green = 0x77, .blue = 0xb4},
+  {.red = 0xff, .green = 0x7f, .blue = 0x0e},
+  {.red = 0x2c, .green = 0xa0, .blue = 0x2c},
+  {.red = 0xd6, .green = 0x27, .blue = 0x28},
+  {.red = 0x94, .green = 0x67, .blue = 0xbd},
+  {.red = 0x8c, .green = 0x56, .blue = 0x4b},
+  {.red = 0xe3, .green = 0x77, .blue = 0xc2},
+  {.red = 0x7f, .green = 0x7f, .blue = 0x7f},
+  {.red = 0xbc, .green = 0xbd, .blue = 0x22},
+  {.red = 0x17, .green = 0xbe, .blue = 0xcf},
+};
+
 static inline void lv_aux_flat_container(lv_obj_t *obj) {
   lv_obj_remove_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_style_pad_all(obj, 0, LV_PART_MAIN);

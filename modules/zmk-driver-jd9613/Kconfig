@@ -47,7 +47,7 @@ endchoice
 # LVGL requires a larger memory pool for higher DPI.
 # Otherwise, the widgets might draw some random noise due to allocation failure.
 config LV_Z_MEM_POOL_SIZE
-    default 20480
+    default 65536
 
 ########################
 # Custom Status Screen #
@@ -58,7 +58,6 @@ choice ZMK_DISPLAY_STATUS_SCREEN
 endchoice
 
 config ZMK_DISPLAY_STATUS_SCREEN_CUSTOM
-    imply ZMK_WIDGET_BAD_APPLE
     imply ZMK_WIDGET_NYAN_CAT
     imply ZMK_WIDGET_RGB_BATTERY_STATUS
     imply ZMK_WIDGET_RGB_OUTPUT_STATUS
@@ -72,7 +71,7 @@ config ZMK_WIDGET_BAD_APPLE
 
 config ZMK_WIDGET_NYAN_CAT
     bool "Nyan cat GIF widget for keypaw48"
-    select LV_USE_GIF
+    select LV_USE_ANIMIMG
     select ZMK_WIDGET_RGB_ICONS
 
 ###############
@@ -82,6 +81,7 @@ config ZMK_WIDGET_NYAN_CAT
 config ZMK_WIDGET_RGB_ICONS
     bool
     # Implied by any widget that uses icon images
+    select LV_BIN_DECODER_RAM_LOAD
     select LV_USE_RLE
 
 config ZMK_WIDGET_RGB_BATTERY_STATUS
@@ -112,6 +112,7 @@ config ZMK_WIDGET_RGB_LAYER_STATUS
     select LV_USE_FLEX
     select LV_USE_IMAGE
     select LV_USE_LABEL
+    select ZMK_HID_INDICATORS
     select ZMK_WIDGET_RGB_ICONS
 
 config ZMK_WIDGET_RGB_WPM_STATUS

@@ -40,7 +40,7 @@ static void output_status_update_cb(struct peripheral_status_state state) {
 
 ZMK_DISPLAY_WIDGET_LISTENER(widget_peripheral_status, struct peripheral_status_state,
                             output_status_update_cb, get_state)
-  ZMK_SUBSCRIPTION(widget_peripheral_status, zmk_split_peripheral_status_changed);
+ZMK_SUBSCRIPTION(widget_peripheral_status, zmk_split_peripheral_status_changed);
 
 int zmk_widget_rgb_peripheral_status_init(struct zmk_widget_rgb_peripheral_status *widget,
                                           lv_obj_t *parent) {
