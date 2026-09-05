@@ -3,6 +3,18 @@
  * SPDX-License-Identifier: MIT
  */
 
+/ {
+    ft6236_split_container: ft6236_split_container {
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        ft6236_split: ft6236_split@0 {
+            compatible = "zmk,input-split";
+            reg = <0>;
+        };
+    };
+};
+
 &pinctrl {
     spi3_default: spi3_default {
         group1 {

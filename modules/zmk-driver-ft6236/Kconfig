@@ -1,0 +1,73 @@
+# Copyright (c) 2026 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+# FT6236 capacitive touch panel driver + Windows Precision Touchpad transport
+
+config FT6236
+        bool "FT6236 capacitive touch panel driver"
+        default y
+        depends on DT_HAS_FOCALTECH_FT6236_ENABLED
+        select I2C
+        select GPIO
+        select INPUT
+        select INPUT_TOUCH
+        help
+          Enable driver for the FocalTech FT6236/FT6x36 family self-capacitive
+          touch controllers. Reports up to two touch points as Zephyr multitouch
+          input events (INPUT_ABS_MT_SLOT slots), and (optionally) bridges the
+          contacts to a Windows Precision Touchpad (HID Digitizer 0x0D) interface.
+
+if FT6236
+
+config FT6236_MAX_TOUCH_POINTS
+        int "Maximum touch points"
+        default 2
+        range 1 2
+        help
+          Maximum number of touch points to report. The FT6x36 controller
+          supports two; set to 1 for single-touch only.
+
+config FT6236_REPORT_PERIOD_MS
+        int "Minimum interval between emitted frames (ms)"
+        default 33
+        help
+          Minimum spacing between emitted multitouch frames. Because each
+          contact event rides the split link as a separate BLE notification,
+          this throttle keeps the peripheral->central link healthy. Lower
+          values increase touchpad smoothness at the cost of BLE bandwidth.
+
+endif # FT6236
+
+config FT6236_TP_LOGICAL_MAX
+        int "PTP logical coordinate maximum"
+        default 32767
+        help
+          Logical maximum reported in the HID Digitizer descriptor and used by
+          the driver to scale raw panel coordinates (0..screen-width/height)
+          into the touchpad coordinate space. 32767 yields an effectively
+          unbounded surface for scrolling.
+
+config FT6236_TOUCHPAD
+        bool "Windows Precision Touchpad (Digitizer 0x0D) reporting"
+        default y
+        depends on ZMK_USB
+        depends on DT_HAS_ZMK_INPUT_PROCESSOR_FT6236_TOUCHPAD_ENABLED
+        select USB_DEVICE_HID
+        help
+          Expose a second HID interface (HID_1) as a Windows Precision
+          Touchpad and drive the FT6236 gesture engine: one contact becomes
+          relative scroll wheel events on the mouse interface, two or more
+          contacts are forwarded as PTP reports for host-side gestures
+          (pinch-zoom, two-finger scroll). The gesture engine + HID interface
+          run on the USB-owning (central) half; enabled automatically when
+          the ft6236 touchpad input processor node is present in the
+          devicetree. Pair with ZMK_POINTING_SMOOTH_SCROLLING so single-
+          finger scroll is emitted in 1/16-notch subunits for hosts that
+          support HID Resolution Multipliers.
+
+if FT6236_TOUCHPAD
+
+config USB_HID_DEVICE_COUNT
+        default 2
+
+endif # FT6236_TOUCHPAD

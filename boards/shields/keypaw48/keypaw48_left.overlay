@@ -6,5 +6,7 @@
 #include "keypaw48.dtsi"
 #include "kp-peri_left.dtsi"
 
-/ {
+/* Route the LEFT-half FT6236 through the split link to the central half. */
+&ft6236_split {
+    device = <&ft6x36>;
 };

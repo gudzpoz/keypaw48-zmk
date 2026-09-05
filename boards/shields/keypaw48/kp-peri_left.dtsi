@@ -33,8 +33,11 @@
     pinctrl-names = "default", "sleep";
 
     ft6x36: ft6x36@38 {
-        compatible = "focaltech,ft5336";
+        compatible = "focaltech,ft6236";
         reg = <0x38>;
+        status = "okay";
         int-gpios = <&gpio1 7 GPIO_ACTIVE_LOW>;
+        screen-width = <240>;
+        screen-height = <320>;
     };
 };

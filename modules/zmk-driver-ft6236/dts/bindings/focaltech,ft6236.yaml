@@ -1,0 +1,21 @@
+# Copyright (c) 2026 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+description: FocalTech FT6236/FT6x36 capacitive touch panels
+
+compatible: "focaltech,ft6236"
+
+include: [i2c-device.yaml, touchscreen-common.yaml]
+
+properties:
+  int-gpios:
+    type: phandle-array
+    description: |
+      Interrupt GPIO. Used by the controller to signal touch data is
+      available. Active low.
+
+  reset-gpios:
+    type: phandle-array
+    description: |
+      Reset GPIO. Used to reset the controller during initialization, and
+      to wake it from hibernation mode. Active low.

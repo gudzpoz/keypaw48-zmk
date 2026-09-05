@@ -15,4 +15,25 @@
         compatible = "zmk,input-listener";
         device = <&paw3395>;
     };
+
+    ft6236_listener: ft6236_listener {
+        compatible = "zmk,input-listener";
+        device = <&ft6236_split>;
+
+        /* Scroll divisors: param1 = X, param2 = Y, in logical units per
+         * wheel notch (0 -> 1). 48/36 ~= 5.5 notches per inch of travel on
+         * both axes for this panel; tune to taste. */
+        input-processors = <&ft6236_touchpad_proc 48 36>;
+    };
+
+    /* PTP (Digitizer 0x0D) + scroll input processor for the FT6236. */
+    ft6236_touchpad_proc: ft6236_touchpad_proc {
+        compatible = "zmk,input-processor-ft6236-touchpad";
+        #input-processor-cells = <2>;
+        scroll-natural;
+
+        /* Digitizer active area: 1.23 in x 1.63 in, in 1/100 inch. */
+        physical-width = <123>;
+        physical-height = <163>;
+    };
 };
