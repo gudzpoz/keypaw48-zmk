@@ -66,6 +66,8 @@
 #define FT6236_POSITION_H_MSK 0x0FU
 
 /* REG_G_PMODE: power consume mode. */
+#define FT6236_PMOD_ACTIVE 0x00U
+#define FT6236_PMOD_MONITOR 0x01U
 #define FT6236_PMOD_HIBERNATE 0x03U
 
 #endif /* ZMK_DRIVER_FT6236_REGS_H_ */

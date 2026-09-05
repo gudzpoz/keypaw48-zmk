@@ -26,6 +26,9 @@ endchoice
 config ZMK_DISPLAY_INVERT
     default y
 
+config ZMK_DISPLAY_BLANK_ON_IDLE
+    default y
+
 config ZMK_DISPLAY
     select LV_USE_THEME_MONO
 

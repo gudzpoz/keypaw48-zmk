@@ -33,6 +33,11 @@ LOG_MODULE_REGISTER(ft6236, CONFIG_INPUT_LOG_LEVEL);
 /* Throttled frame: cap contacts at the configured maximum. */
 #define FT6236_MAX_POINTS CONFIG_FT6236_MAX_TOUCH_POINTS
 
+/* Frame events: (slot, X, Y, tip switch) per current contact, plus a
+ * synthesized (slot, tip switch = 0) release pair per contact that
+ * disappeared since the last emitted frame. */
+#define FT6236_MAX_FRAME_EVTS (FT6236_MAX_POINTS * 4 + FT6236_MAX_POINTS * 2)
+
 /* A single (type, code, value) triple in a multitouch frame. */
 struct ft6236_frame_evt {
   uint8_t type;
@@ -172,21 +177,33 @@ static int ft6236_process(const struct device *dev) {
     cur[i].y = oy;
   }
 
-  /* Throttle: only emit when something changed AND the min interval elapsed. */
-  uint32_t now = k_uptime_get_32();
+  /* Only emit when something changed since the last read. */
   if (!ft6236_state_changed(data, cur, points)) {
     return 0;
   }
-  if ((now - data->last_emit_ms) < (uint32_t)CONFIG_FT6236_REPORT_PERIOD_MS) {
+
+  /* Throttle movement frames, but never press/lift transitions: after a
+   * lift the chip goes idle and stops interrupting, so a throttled
+   * release frame would be lost forever, stranding the contact as
+   * pressed on the receiving side. */
+  bool edge = points != data->last_count;
+  for (uint8_t i = 0; i < points && i < data->last_count; i++) {
+    edge = edge || cur[i].touch != data->last[i].touch;
+  }
+
+  uint32_t now = k_uptime_get_32();
+  if (!edge && (now - data->last_emit_ms) < (uint32_t)CONFIG_FT6236_REPORT_PERIOD_MS) {
     return 0;
   }
   data->last_emit_ms = now;
 
-  LOG_DBG("%dx: %d:(%d,%d)+%d:(%d,%d)?", points, cur[0].id, cur[0].x, cur[0].y,
-          cur[1].id, cur[1].x, cur[1].y);
+  for (uint8_t i = 0; i < points; i++) {
+    LOG_DBG("point %u: id %u (%u, %u) touch %d", i, cur[i].id, cur[i].x, cur[i].y,
+            cur[i].touch);
+  }
 
   /* Build the frame as (type, code, value) triples; last carries sync. */
-  struct ft6236_frame_evt evt[FT6236_MAX_POINTS * 4];
+  struct ft6236_frame_evt evt[FT6236_MAX_FRAME_EVTS];
   uint8_t n = 0;
 
   for (uint8_t i = 0; i < points; i++) {
@@ -244,6 +261,23 @@ static int ft6236_int_disable(const struct ft6236_config *config) {
   return gpio_pin_interrupt_configure_dt(&config->int_gpio, GPIO_INT_DISABLE);
 }
 
+static int ft6236_reset(const struct ft6236_config *config) {
+  int r = gpio_pin_set_dt(&config->reset_gpio, 1);
+  if (r < 0) {
+    return r;
+  }
+
+  k_sleep(K_MSEC(5));
+
+  r = gpio_pin_set_dt(&config->reset_gpio, 0);
+  if (r < 0) {
+    return r;
+  }
+
+  k_sleep(K_MSEC(200));
+  return 0;
+}
+
 static int ft6236_init(const struct device *dev) {
   const struct ft6236_config *config = dev->config;
   struct ft6236_data *data = dev->data;
@@ -261,15 +295,13 @@ static int ft6236_init(const struct device *dev) {
   k_work_init(&data->work, ft6236_work_handler);
 
   if (config->reset_gpio.port != NULL) {
-    /* Enable reset GPIO and assert reset */
+    /* Enable reset GPIO (asserted) and run the reset sequence. */
     r = gpio_pin_configure_dt(&config->reset_gpio, GPIO_OUTPUT_ACTIVE);
     if (r < 0) {
       LOG_ERR("Could not enable reset GPIO");
       return r;
     }
-    k_sleep(K_MSEC(5));
-    /* Pull reset pin high to complete reset sequence */
-    r = gpio_pin_set_dt(&config->reset_gpio, 0);
+    r = ft6236_reset(config);
     if (r < 0) {
       return r;
     }
@@ -285,6 +317,14 @@ static int ft6236_init(const struct device *dev) {
     LOG_WRN("Could not read chip id (0x%02x)", r);
   }
 
+  /* Force Active mode: a previous suspend may have left the chip in
+   * monitor/hibernate mode (e.g. after a wake from system deep sleep). */
+  r = i2c_reg_write_byte_dt(&config->bus, FT6236_REG_G_PMODE,
+                            FT6236_PMOD_ACTIVE);
+  if (r < 0) {
+    LOG_WRN("Could not set Active power mode (0x%02x)", r);
+  }
+
   if (!gpio_is_ready_dt(&config->int_gpio)) {
     LOG_ERR("Interrupt GPIO controller device not ready");
     return -ENODEV;
@@ -296,8 +336,7 @@ static int ft6236_init(const struct device *dev) {
     return r;
   }
 
-  r = gpio_pin_interrupt_configure_dt(&config->int_gpio,
-                                      GPIO_INT_EDGE_TO_ACTIVE);
+  r = ft6236_int_enable(config);
   if (r < 0) {
     LOG_ERR("Could not configure interrupt GPIO interrupt.");
     return r;
@@ -320,7 +359,60 @@ static int ft6236_init(const struct device *dev) {
   return 0;
 }
 
+#ifdef CONFIG_PM_DEVICE
+static int ft6236_pm_action(const struct device *dev,
+                            enum pm_device_action action) {
+  const struct ft6236_config *config = dev->config;
+  struct ft6236_data *data = dev->data;
+  int r;
+
+  switch (action) {
+  case PM_DEVICE_ACTION_SUSPEND: {
+    r = ft6236_int_disable(config);
+    if (r < 0) {
+      return r;
+    }
+    k_work_cancel(&data->work);
+    /* Hibernate can only be left through a reset line; without one, drop
+     * to monitor mode instead, where the I2C interface stays alive so
+     * ft6236_init() can bring the chip back to Active mode. */
+    uint8_t pmod = (config->reset_gpio.port != NULL) ? FT6236_PMOD_HIBERNATE
+                                                     : FT6236_PMOD_MONITOR;
+    r = i2c_reg_write_byte_dt(&config->bus, FT6236_REG_G_PMODE, pmod);
+    if (r < 0) {
+      return r;
+    }
+    break;
+  }
+  case PM_DEVICE_ACTION_RESUME:
+    if (config->reset_gpio.port != NULL) {
+      /* Toggle reset: the documented way out of hibernation. */
+      r = ft6236_reset(config);
+      if (r < 0) {
+        return r;
+      }
+    } else {
+      r = i2c_reg_write_byte_dt(&config->bus, FT6236_REG_G_PMODE,
+                                FT6236_PMOD_ACTIVE);
+      if (r < 0) {
+        return r;
+      }
+    }
+    r = ft6236_int_enable(config);
+    if (r < 0) {
+      return r;
+    }
+    break;
+  default:
+    return -ENOTSUP;
+  }
+
+  return 0;
+}
+#endif
+
 #define FT6236_INIT(index)                                              \
+  PM_DEVICE_DT_INST_DEFINE(index, ft6236_pm_action);                    \
   static const struct ft6236_config ft6236_config_##index = {           \
     .common = INPUT_TOUCH_DT_INST_COMMON_CONFIG_INIT(index),            \
     .bus = I2C_DT_SPEC_INST_GET(index),                                 \

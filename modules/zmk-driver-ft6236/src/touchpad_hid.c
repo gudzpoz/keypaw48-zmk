@@ -19,11 +19,16 @@
 #if IS_ENABLED(CONFIG_ZMK_USB)
 #include <zephyr/usb/usb_device.h>
 #include <zephyr/usb/class/usb_hid.h>
+
+#include <zmk/usb.h>
 #endif
 
 LOG_MODULE_REGISTER(ft6236_touchpad, CONFIG_ZMK_LOG_LEVEL);
 
 #if IS_ENABLED(CONFIG_ZMK_USB)
+
+/* GET_REPORT/SET_REPORT wValue[15:8] report type (HID 1.11 section 7.2.1). */
+#define FT6236_TP_REPORT_TYPE_FEATURE 0x03U
 
 /* HID report descriptor instantiation */
 static const uint8_t touchpad_hid_report_desc[] = {
@@ -60,10 +65,12 @@ static uint8_t ptphqa_response[257] = {
   0xe4, 0xcf, 0x17, 0xb7, 0xb8, 0xf4, 0xe1, 0x33, 0x08, 0x24, 0x8b, 0xc4, 0x43, 0xa5, 0xe5, 0x24, 0xc2
 };
 
-static uint8_t current_input_mode = 0;
-static uint8_t current_device_index = 0;
-static uint8_t surface_switch = 1;
-static uint8_t button_switch = 1;
+/* Host-controlled PTP state: written from the USB control-transfer context
+ * (SET_REPORT callbacks), read from the input thread. */
+static volatile uint8_t current_input_mode = 0;
+static volatile uint8_t current_device_index = 0;
+static volatile uint8_t surface_switch = 1;
+static volatile uint8_t button_switch = 1;
 
 static struct ft6236_tp_feature_input_mode input_mode_response = {
   .report_id    = FT6236_TP_FEATURE_CONFIG_ID,
@@ -80,7 +87,7 @@ static int touchpad_get_report(const struct device *dev,
   uint8_t report_id = (uint8_t)(setup->wValue & 0xFF);
   uint8_t report_type = (uint8_t)(setup->wValue >> 8);
 
-  if (report_type != 3) {
+  if (report_type != FT6236_TP_REPORT_TYPE_FEATURE) {
     LOG_WRN("Unexpected GET_REPORT type %u for report %u", report_type, report_id);
     return -ENOTSUP;
   }
@@ -205,20 +212,24 @@ int ft6236_touchpad_send_report(const struct ft6236_touchpad_report *report) {
     return -ENODEV;
   }
 
+  /* Quietly drop reports when no host is listening (e.g. the central
+   * running on BLE only): attempting the write would only produce
+   * "device is not configured" warnings from the USB stack. */
+  if (!zmk_usb_is_hid_ready()) {
+    return -ENODEV;
+  }
+
   k_mutex_lock(&send_mutex, K_FOREVER);
 
-  static struct ft6236_tp_input_report hid_reports[4];
-  static uint8_t report_idx = 0;
+  /* Single shared report buffer; access is serialized by send_mutex. */
+  static struct ft6236_tp_input_report hid_report;
 
-  struct ft6236_tp_input_report *hid_report = &hid_reports[report_idx];
-  report_idx = (report_idx + 1) % 4;
+  memset(&hid_report, 0, sizeof(hid_report));
 
-  memset(hid_report, 0, sizeof(*hid_report));
-
-  hid_report->report_id = FT6236_TP_REPORT_ID;
+  hid_report.report_id = FT6236_TP_REPORT_ID;
 
   for (int i = 0; i < FT6236_TOUCHPAD_MAX_CONTACTS; i++) {
-    struct ft6236_tp_contact_report *dst = &hid_report->contacts[i];
+    struct ft6236_tp_contact_report *dst = &hid_report.contacts[i];
     const struct ft6236_touchpad_contact *src = &report->contacts[i];
 
     /*
@@ -241,13 +252,13 @@ int ft6236_touchpad_send_report(const struct ft6236_touchpad_report *report) {
     current_scan = last_scan_time + 10;
   }
   last_scan_time = current_scan;
-  hid_report->scan_time = (uint16_t)(current_scan & 0xFFFF);
+  hid_report.scan_time = (uint16_t)(current_scan & 0xFFFF);
 
-  hid_report->contact_count = report->contact_count;
-  hid_report->buttons = report->button ? 0x01 : 0x00;
+  hid_report.contact_count = report->contact_count;
+  hid_report.buttons = report->button ? 0x01 : 0x00;
 
-  int ret = hid_int_ep_write(hid_dev, (const uint8_t *)hid_report,
-                             sizeof(*hid_report), NULL);
+  int ret = hid_int_ep_write(hid_dev, (const uint8_t *)&hid_report,
+                             sizeof(hid_report), NULL);
 
   k_mutex_unlock(&send_mutex);
 
@@ -277,6 +288,8 @@ bool ft6236_touchpad_surface_enabled(void) {
 #endif
 }
 
+/* Must run before CONFIG_ZMK_USB_INIT_PRIORITY (which calls usb_enable) so
+ * the HID_1 registration is part of the enumerated USB configuration. */
 SYS_INIT(ft6236_touchpad_init, APPLICATION, 49);
 
 #else /* !IS_ENABLED(CONFIG_ZMK_USB) */

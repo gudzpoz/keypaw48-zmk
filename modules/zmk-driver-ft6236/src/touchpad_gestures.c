@@ -189,9 +189,10 @@ static void ft6236_proc_update_mode(struct ft6236_touchpad_proc_data *data) {
     return;
   }
 
-  /* count >= 2: hand everything to the host. Any wheel deltas already
-   * rewritten this frame are dropped because PTP mode clears the sync
-   * flag, so no stray scroll tick is flushed. The PTP frame sent on
+  /* count >= 2: hand everything to the host. Wheel deltas rewritten
+   * earlier in this frame are not flushed now (PTP mode clears the
+   * sync flag); they linger in the listener's accumulator and go out
+   * with the next scroll-mode frame's sync. The PTP frame sent on
    * sync reports both contacts, giving the host a clean 2-finger
    * gesture (pinch / two-finger scroll). */
   data->mode = FT6236_PROC_MODE_PTP;
@@ -333,8 +334,8 @@ static int ft6236_touchpad_proc_handle_event(const struct device *dev,
    * listener flushes accumulated wheel deltas at end of frame — the
    * final deltas of a lifting frame must still go out. Only in PTP mode
    * is sync cleared: the PTP report has already been sent from here,
-   * and any wheel deltas rewritten earlier in a scroll->PTP transition
-   * frame are deliberately dropped.
+   * and in a scroll->PTP transition frame the flush is deferred to the
+   * next scroll-mode frame.
    */
   evt->type = ZMK_INPUT_EV_DUMMY;
   evt->code = 0;
