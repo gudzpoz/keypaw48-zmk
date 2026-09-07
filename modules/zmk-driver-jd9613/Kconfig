@@ -61,7 +61,7 @@ choice ZMK_DISPLAY_STATUS_SCREEN
 endchoice
 
 config ZMK_DISPLAY_STATUS_SCREEN_CUSTOM
-    imply ZMK_WIDGET_NYAN_CAT
+    imply ZMK_WIDGET_ANIMATION
     imply ZMK_WIDGET_RGB_BATTERY_STATUS
     imply ZMK_WIDGET_RGB_OUTPUT_STATUS
     imply ZMK_WIDGET_RGB_PERIPHERAL_STATUS
@@ -72,10 +72,19 @@ config ZMK_WIDGET_BAD_APPLE
     bool "Bad Apple playback widget for keypaw48"
     select LV_USE_CANVAS
 
-config ZMK_WIDGET_NYAN_CAT
-    bool "Nyan cat GIF widget for keypaw48"
+config ZMK_WIDGET_ANIMATION
+    bool "Animation widget for keypaw48"
     select LV_USE_ANIMIMG
     select ZMK_WIDGET_RGB_ICONS
+    help
+        Plays one of the GIF animations converted by scripts/gen_icons.py.
+        Which one is selected by ZMK_WIDGET_ANIMATION_SOURCE, a Kconfig
+        choice generated into src/widgets/icons/Kconfig.animations by
+        `make resources`.
+
+# The choice is generated alongside the icons, which are not checked in (see
+# .gitignore), so it has to be sourced optionally.
+orsource "src/widgets/icons/Kconfig.animations"
 
 ###############
 # RGB Widgets #
@@ -86,6 +95,10 @@ config ZMK_WIDGET_RGB_ICONS
     # Implied by any widget that uses icon images
     select LV_BIN_DECODER_RAM_LOAD
     select LV_USE_RLE
+
+config ZMK_WIDGET_ANIMATION_DURATION
+    int "Animation single loop duration in ms for the animation widget."
+    default 1500
 
 config ZMK_WIDGET_RGB_BATTERY_STATUS
     bool "RGB battery status widget"

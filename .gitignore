@@ -14,4 +14,6 @@ __pycache__/
 # Misc
 # Download from source
 scripts/LVGLImage.py
-scripts/nyan_cat.gif
+scripts/*.gif
+# Copyrighted (datasheets, etc.)
+references/

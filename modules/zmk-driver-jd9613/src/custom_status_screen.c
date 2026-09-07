@@ -38,9 +38,9 @@ static struct zmk_widget_rgb_layer_status layer_status_widget;
 static struct zmk_widget_bad_apple bad_apple_widget;
 #endif
 
-#if IS_ENABLED(CONFIG_ZMK_WIDGET_NYAN_CAT)
-#include "widgets/nyan_cat.h"
-static struct zmk_widget_nyan_cat nyan_cat_widget;
+#if IS_ENABLED(CONFIG_ZMK_WIDGET_ANIMATION)
+#include "widgets/animation.h"
+static struct zmk_widget_animation animation_widget;
 #endif
 
 lv_obj_t *zmk_display_status_screen() {
@@ -95,9 +95,9 @@ lv_obj_t *zmk_display_status_screen() {
   ALIGN_TOP(zmk_widget_bad_apple_obj(&bad_apple_widget), 2)
 #endif
 
-#if IS_ENABLED(CONFIG_ZMK_WIDGET_NYAN_CAT)
-  zmk_widget_nyan_cat_init(&nyan_cat_widget, screen);
-  ALIGN_BOTTOM(zmk_widget_nyan_cat_obj(&nyan_cat_widget), 2)
+#if IS_ENABLED(CONFIG_ZMK_WIDGET_ANIMATION)
+  zmk_widget_animation_init(&animation_widget, screen);
+  ALIGN_BOTTOM(zmk_widget_animation_obj(&animation_widget), 2)
 #endif
 
   return screen;
