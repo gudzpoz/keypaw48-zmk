@@ -33,13 +33,13 @@ static void set_status_symbol(lv_obj_t *icon, struct peripheral_status_state sta
   lv_obj_set_style_image_recolor(icon, state.connected ? COLOR_ACTIVE : COLOR_INACTIVE, LV_PART_MAIN);
 }
 
-static void output_status_update_cb(struct peripheral_status_state state) {
+static void peripheral_status_update_cb(struct peripheral_status_state state) {
   struct zmk_widget_rgb_peripheral_status *widget;
   SYS_SLIST_FOR_EACH_CONTAINER(&widgets, widget, node) { set_status_symbol(widget->obj, state); }
 }
 
 ZMK_DISPLAY_WIDGET_LISTENER(widget_peripheral_status, struct peripheral_status_state,
-                            output_status_update_cb, get_state)
+                            peripheral_status_update_cb, get_state)
 ZMK_SUBSCRIPTION(widget_peripheral_status, zmk_split_peripheral_status_changed);
 
 int zmk_widget_rgb_peripheral_status_init(struct zmk_widget_rgb_peripheral_status *widget,

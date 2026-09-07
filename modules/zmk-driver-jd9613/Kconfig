@@ -59,11 +59,11 @@ endchoice
 ##############
 
 choice LV_FONT_DEFAULT
-    default LV_FONT_DEFAULT_MONTSERRAT_28
+    default LV_FONT_DEFAULT_MONTSERRAT_20
 endchoice
 
 choice ZMK_LV_FONT_DEFAULT_SMALL
-    default ZMK_LV_FONT_DEFAULT_SMALL_MONTSERRAT_20
+    default ZMK_LV_FONT_DEFAULT_SMALL_MONTSERRAT_16
 endchoice
 
 # LVGL requires a larger memory pool for higher DPI.

@@ -98,6 +98,7 @@ static void output_status_update_cb(struct output_status_state state) {
 static void output_status_anim_cb(lv_timer_t *timer) {
   struct zmk_widget_rgb_output_status *widget = lv_timer_get_user_data(timer);
   icon_bluetooth_searching_update(&widget->anim, widget->anim_step, 32);
+  lv_obj_invalidate(widget->bt);
   widget->anim_step = (widget->anim_step + 50) % 150;
 }
 

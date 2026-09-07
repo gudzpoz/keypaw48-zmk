@@ -19,6 +19,12 @@ static void anim_update(const uint8_t *src, uint8_t *dst, uint8_t threshold, uin
   }
 }
 
+static inline void anim_drop_cache(const lv_image_dsc_t *dsc) {
+#if LV_CACHE_DEF_SIZE != 0
+  lv_image_cache_drop(dsc);
+#endif
+}
+
 #define DEFINE_ANIMATION(name)                                          \
   struct name##_state {                                                 \
     lv_image_dsc_t dsc;                                                 \
@@ -34,4 +40,5 @@ static void anim_update(const uint8_t *src, uint8_t *dst, uint8_t threshold, uin
                                    uint8_t opacity) {                   \
     int threshold = ((int)percent) * ANIM_STEPS_##name / 100;           \
     anim_update(name.data, s->buffer, threshold << 4, opacity);         \
+    anim_drop_cache(&s->dsc);                                           \
   }
