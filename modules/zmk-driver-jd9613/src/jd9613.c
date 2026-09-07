@@ -11,7 +11,6 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <lvgl.h>
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/init.h>
@@ -36,7 +35,7 @@ struct jd9613_cfg {
 struct jd9613_data {
   enum display_pixel_format pixel_format;
   bool blanking_on: 1;
-  bool rounder_added: 1;
+  bool initialized: 1;
 };
 
 /* These helper macros are undefined later. */
@@ -156,7 +155,7 @@ static inline int jd9613_write_cmd(const struct jd9613_cfg *cfg, uint8_t cmd,
   int ret = spi_write_dt(&cfg->bus, &cmd_set);
   if (ret < 0) {
     LOG_ERR("command write failed: %d", ret);
-    return -EIO;
+    return ret;
   }
 
   /* DC high = data */
@@ -170,7 +169,7 @@ static inline int jd9613_write_cmd(const struct jd9613_cfg *cfg, uint8_t cmd,
     ret = spi_write_dt(&cfg->bus, &data_set);
     if (ret < 0) {
       LOG_ERR("data write failed: %d", ret);
-      return -EIO;
+      return ret;
     }
   }
 
@@ -184,11 +183,7 @@ static inline int jd9613_write_data(const struct jd9613_cfg *cfg,
 
   /* DC high = data */
   gpio_pin_set_dt(&cfg->dc, 1);
-  if (spi_write_dt(&cfg->bus, &buf_set) < 0) {
-    return -EIO;
-  }
-
-  return 0;
+  return spi_write_dt(&cfg->bus, &buf_set);
 }
 
 static int jd9613_reset(const struct jd9613_cfg *cfg) {
@@ -238,27 +233,25 @@ static int jd9613_set_window(const struct jd9613_cfg *cfg, uint16_t x0, uint16_t
   return 0;
 }
 
-static void jd9613_lv_rounder_cb(lv_event_t *e) {
-  lv_area_t *area = lv_event_get_param(e);
-  /* JD9613 requires regions to be of even coords, see jd9613_set_window */
-  area->x1 &= ~1;
-  area->y1 &= ~1;
-  area->x2 |= 1;
-  area->y2 |= 1;
-}
+static int jd9613_full_init(const struct device *dev);
 
 static int jd9613_blanking_on(const struct device *dev) {
   struct jd9613_data *data = dev->data;
   const struct jd9613_cfg *cfg = dev->config;
   int ret;
 
-  data->blanking_on = true;
+  if (!data->initialized) {
+    /* In sleep or powering-up */
+    data->blanking_on = true;
+    return 0;
+  }
+
   ret = jd9613_write_cmd(cfg, JD9613_CMD_SLPIN, NULL, 0);
   if (ret < 0) {
     return ret;
   }
 
-  k_sleep(K_MSEC(JD9613_SLPOUT_DELAY_MS));
+  data->blanking_on = true;
   return 0;
 }
 
@@ -267,19 +260,20 @@ static int jd9613_blanking_off(const struct device *dev) {
   const struct jd9613_cfg *cfg = dev->config;
   int ret;
 
+  if (!data->initialized) {
+    /* Deferred init */
+    ret = jd9613_full_init(dev);
+    if (ret < 0) {
+      LOG_ERR("controller init failed: %d", ret);
+      return ret;
+    }
+    data->blanking_on = false;
+    return 0;
+  }
+
   ret = jd9613_write_cmd(cfg, JD9613_CMD_SLPOUT, NULL, 0);
   if (ret < 0) {
     return ret;
-  }
-
-  if (!data->rounder_added) {
-    lv_disp_t *disp = lv_disp_get_default();
-    if (disp == NULL) {
-      LOG_ERR("lvgl not ready");
-    } else {
-      data->rounder_added = true;
-      lv_display_add_event_cb(disp, jd9613_lv_rounder_cb, LV_EVENT_INVALIDATE_AREA, disp);
-    }
   }
 
   k_sleep(K_MSEC(JD9613_SLPOUT_DELAY_MS));
@@ -422,7 +416,7 @@ static int jd9613_set_rotation(const struct device *dev,
   return 0;
 }
 
-static uint8_t LOGO[] = {
+static const uint8_t LOGO[] = {
   0b11000011,
   0b11000110,
   0b11001100,
@@ -475,7 +469,10 @@ static int jd9613_controller_init(const struct device *dev) {
   const struct jd9613_cfg *cfg = dev->config;
   int ret;
 
-  jd9613_reset(cfg);
+  ret = jd9613_reset(cfg);
+  if (ret < 0) {
+    return ret;
+  }
 
   const uint8_t *addr = jd9613_init_seq;
   uint8_t cmd, len;
@@ -491,6 +488,29 @@ static int jd9613_controller_init(const struct device *dev) {
     }
   }
 
+  return 0;
+}
+
+static int jd9613_full_init(const struct device *dev) {
+  struct jd9613_data *data = dev->data;
+  int ret;
+
+  ret = jd9613_controller_init(dev);
+  if (ret < 0) {
+    return ret;
+  }
+
+  ret = jd9613_set_pixel_format(dev, data->pixel_format);
+  if (ret < 0) {
+    return ret;
+  }
+
+  ret = jd9613_logo(dev);
+  if (ret < 0) {
+    return ret;
+  }
+
+  data->initialized = true;
   return 0;
 }
 
@@ -511,24 +531,10 @@ static int jd9613_init(const struct device *dev) {
     return -EIO;
   }
 
+  /* Init deferred to first blanking off */
   data->pixel_format = PIXEL_FORMAT_RGB_888;
-  data->blanking_on = false;
-  data->rounder_added = false;
-
-  int ret = jd9613_controller_init(dev);
-  if (ret < 0) {
-    return ret;
-  }
-
-  ret = jd9613_set_pixel_format(dev, data->pixel_format);
-  if (ret < 0) {
-    return ret;
-  }
-
-  ret = jd9613_logo(dev);
-  if (ret < 0) {
-    return ret;
-  }
+  data->blanking_on = true;
+  data->initialized = false;
   return 0;
 }
 static const struct display_driver_api jd9613_driver_api = {

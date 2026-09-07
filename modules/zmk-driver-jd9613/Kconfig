@@ -19,10 +19,6 @@ config JD9613
 config LV_Z_BITS_PER_PIXEL
     default 24
 
-choice LV_COLOR_DEPTH
-    default LV_COLOR_DEPTH_24
-endchoice
-
 config ZMK_DISPLAY_INVERT
     default y
 
@@ -32,12 +28,35 @@ config ZMK_DISPLAY_BLANK_ON_IDLE
 config ZMK_DISPLAY
     select LV_USE_THEME_MONO
 
+#################
+# Area Rounding #
+#################
+
+# The JD9613 requires write regions with even coordinates (see
+# jd9613_set_window in the driver). Point the LVGL glue's built-in rounder
+# at a 2x2 alignment instead of carrying LVGL-specific code in the driver;
+# a non-1 alignment auto-enables LV_Z_USE_ROUNDER_CB.
+config LV_Z_AREA_X_ALIGNMENT_WIDTH
+    default 2 if DT_HAS_JADARD_JD9613_ENABLED
+
+config LV_Z_AREA_Y_ALIGNMENT_WIDTH
+    default 2 if DT_HAS_JADARD_JD9613_ENABLED
+
+##############
+# Work Queue #
+##############
+
+# The driver defers controller init to the first blanking off and sleeps
+# 120ms after SLPOUT on every unblank. Run display init/blanking and LVGL
+# rendering on a dedicated queue so those waits never stall the system
+# workqueue (keyscan, BLE, event processing).
+choice ZMK_DISPLAY_WORK_QUEUE
+    default ZMK_DISPLAY_WORK_QUEUE_DEDICATED if DT_HAS_JADARD_JD9613_ENABLED
+endchoice
+
 ##############
 # Higher DPI #
 ##############
-
-config LV_DPI_DEF
-    default 291
 
 choice LV_FONT_DEFAULT
     default LV_FONT_DEFAULT_MONTSERRAT_28
