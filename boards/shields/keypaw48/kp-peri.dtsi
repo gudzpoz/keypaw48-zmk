@@ -4,6 +4,12 @@
  */
 
 / {
+    shared_reset: shared-reset {
+        compatible = "keypaw,shared-reset";
+        reset-gpios = <&gpio1 1 GPIO_ACTIVE_LOW>;
+        reset-hold-ms = <10>;
+    };
+
     ft6236_split_container: ft6236_split_container {
         #address-cells = <1>;
         #size-cells = <0>;

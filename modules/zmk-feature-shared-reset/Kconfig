@@ -1,0 +1,24 @@
+config KEYPAW_SHARED_RESET
+    bool "Shared hardware reset line sequencer"
+        default y
+        depends on DT_HAS_KEYPAW_SHARED_RESET_ENABLED
+        select GPIO
+        help
+          Assert the shared hardware reset line once at boot, hold it, then
+          release it. On the keypaw48 one net resets several chips at once
+          (touch panel + display on the left, motion sensor + display on the
+          right), so no single driver may own it.
+
+if KEYPAW_SHARED_RESET
+
+config KEYPAW_SHARED_RESET_INIT_PRIORITY
+    int "Shared reset init priority (POST_KERNEL)"
+    default 82
+    help
+          Must run after ZMK_EXT_POWER_INIT_PRIORITY (81), which switches the
+          peripheral rails on and settles them, and before
+          CONFIG_DISPLAY_INIT_PRIORITY (85) and CONFIG_INPUT_INIT_PRIORITY (90),
+          so that every device on the shared line initializes after the reset
+          has been released.
+
+endif

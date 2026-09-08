@@ -1,0 +1,2 @@
+zephyr_library()
+zephyr_library_sources_ifdef(CONFIG_KEYPAW_SHARED_RESET shared_reset.c)

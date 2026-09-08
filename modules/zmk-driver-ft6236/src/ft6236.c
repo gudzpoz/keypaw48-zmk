@@ -76,9 +76,30 @@ struct ft6236_data {
   uint8_t last_count;
   /** Timestamp (ms) of the last emitted frame, for throttle. */
   uint32_t last_emit_ms;
+  /** Set once the chip has been identified (see ft6236_identify()). */
+  bool identified;
 };
 
 INPUT_TOUCH_STRUCT_CHECK(struct ft6236_config);
+
+static void ft6236_identify(const struct device *dev) {
+  const struct ft6236_config *config = dev->config;
+  uint8_t vendor = 0;
+  int r = i2c_reg_read_byte_dt(&config->bus, FT6236_REG_FOCALTECH_ID, &vendor);
+
+  if (r < 0 || vendor != FT6236_FOCALTECH_ID) {
+    LOG_WRN("FocalTech vendor id not found (0x%02x, r %d)", vendor, r);
+    return;
+  }
+
+  uint8_t chip_id = 0;
+  r = i2c_reg_read_byte_dt(&config->bus, FT6236_REG_CHIP_ID, &chip_id);
+  if (r < 0) {
+    LOG_WRN("Could not read chip id (%d)", r);
+  } else {
+    LOG_INF("FT6x36 chip id 0x%02x", chip_id);
+  }
+}
 
 /* Scale a raw panel coordinate to the PTP logical space, applying
  * inverted / swapped orientation from the common config. */
@@ -153,6 +174,11 @@ static int ft6236_process(const struct device *dev) {
   int r;
   uint8_t points;
   struct ft6236_point cur[FT6236_MAX_POINTS] = {0};
+
+  if (!data->identified) {
+    data->identified = true;
+    ft6236_identify(dev);
+  }
 
   r = i2c_reg_read_byte_dt(&config->bus, FT6236_REG_TD_STATUS, &points);
   if (r < 0) {
@@ -305,24 +331,6 @@ static int ft6236_init(const struct device *dev) {
     if (r < 0) {
       return r;
     }
-  }
-
-  /* Log the chip identity for sanity checking the wiring/register map. */
-  uint8_t chip_id = 0;
-  r = i2c_reg_read_byte_dt(&config->bus, FT6236_REG_CHIP_ID, &chip_id);
-  if (r == 0) {
-    LOG_INF("FT6x36 chip id 0x%02x (expected 0x%02x)", chip_id,
-            FT6236_CHIP_ID_FAMILY);
-  } else {
-    LOG_WRN("Could not read chip id (0x%02x)", r);
-  }
-
-  /* Force Active mode: a previous suspend may have left the chip in
-   * monitor/hibernate mode (e.g. after a wake from system deep sleep). */
-  r = i2c_reg_write_byte_dt(&config->bus, FT6236_REG_G_PMODE,
-                            FT6236_PMOD_ACTIVE);
-  if (r < 0) {
-    LOG_WRN("Could not set Active power mode (0x%02x)", r);
   }
 
   if (!gpio_is_ready_dt(&config->int_gpio)) {

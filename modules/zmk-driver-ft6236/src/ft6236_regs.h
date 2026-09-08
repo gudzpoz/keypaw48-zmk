@@ -39,7 +39,6 @@
 #define FT6236_REG_FOCALTECH_ID 0xA8U
 
 #define FT6236_FOCALTECH_ID 0x11U
-#define FT6236_CHIP_ID_FAMILY 0x36U
 
 /* ---- Bitfields ---- */
 

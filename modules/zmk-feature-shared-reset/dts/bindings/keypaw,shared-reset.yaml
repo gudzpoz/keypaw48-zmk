@@ -1,0 +1,22 @@
+description: Shared hardware reset line
+
+compatible: "keypaw,shared-reset"
+
+properties:
+  reset-gpios:
+    type: phandle-array
+    required: true
+    description: |
+      Shared RESET net. It is driven to its active level at boot, held
+      there for reset-hold-ms, then released. Every chip wired to this net
+      gets a power-on reset, so it must not be claimed by another driver.
+  reset-hold-ms:
+    type: int
+    default: 10
+    description: |
+      How long the line is held asserted. Must exceed the slowest chip's
+      minimum reset pulse (FT6x36 ~5 ms, JD9613 ~50 us).
+  release-wait-ms:
+    type: int
+    default: 10
+    description: Optional settle time after the line is released.
