@@ -103,7 +103,25 @@ config ZMK_WIDGET_ANIMATION
         Plays one of the GIF animations converted by scripts/gen_icons.py.
         Which one is selected by ZMK_WIDGET_ANIMATION_SOURCE, a Kconfig
         choice generated into src/widgets/icons/Kconfig.animations by
-        `make resources`.
+        `make resources`. When it plays is selected by
+        ZMK_WIDGET_ANIMATION_MODE.
+
+choice ZMK_WIDGET_ANIMATION_MODE
+    prompt "Animation playback mode"
+    depends on ZMK_WIDGET_ANIMATION
+    default ZMK_WIDGET_ANIMATION_MODE_ON_KEYPRESS
+
+config ZMK_WIDGET_ANIMATION_MODE_LOOP
+    bool "Loop the animation continuously"
+
+config ZMK_WIDGET_ANIMATION_MODE_ON_KEYPRESS
+    bool "Play one loop per key press"
+    help
+        Start a single loop on a key press and stop on the first frame once
+        that loop completes. Presses arriving while a loop is in flight are
+        ignored, so a running loop is never restarted mid-play.
+
+endchoice
 
 # The choice is generated alongside the icons, which are not checked in (see
 # .gitignore), so it has to be sourced optionally.
