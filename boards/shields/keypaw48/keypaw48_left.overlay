@@ -3,10 +3,36 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <dt-bindings/keypaw/rgb_matrix.h>
+
 #include "keypaw48.dtsi"
 #include "kp-peri_left.dtsi"
 
 /* Route the LEFT-half FT6236 through the split link to the central half. */
 &ft6236_split {
     device = <&ft6x36>;
+};
+
+/ {
+    rgb_matrix: rgb-matrix {
+        compatible = "keypaw,rgb-matrix";
+        strip = <&led_strip>;
+        physical-layout = <&default_layout>;
+
+        mapping = <
+        5 4 3 2 1 0
+        12 13 14 15 16 17
+        29 28 27 26 25 24
+
+        KP_RGB_NO_KEY(50, 387)  // between 24 & 36
+        KP_RGB_NO_KEY(150, 387) // between 25 & 37
+        KP_RGB_NO_KEY(250, 400) // ~to the right of the previous LED
+        KP_RGB_NO_KEY(320, 350) // ~to the top right of the previous LED
+        36 37
+        KP_RGB_NO_KEY(500, 500) // ~to the left of 41
+        41
+        KP_RGB_NO_KEY(650, 475) // ~to the right of 41
+        40 39 38
+        >;
+    };
 };

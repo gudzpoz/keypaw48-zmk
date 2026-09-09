@@ -1,0 +1,13 @@
+# Copyright (c) 2026 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+config ZMK_RGB_EFFECT_EXAMPLE
+    bool "Example custom RGB matrix effect (fx_example)"
+    default y
+    depends on KEYPAW_RGB_MATRIX
+    depends on KEYPAW_BEHAVIOR_RGB_MATRIX
+    depends on DT_HAS_KEYPAW_RGB_MATRIX_EXAMPLE_ENABLED
+    help
+      A worked example of adding a brand-new RGB matrix effect from a *separate*
+      module, with no edits to zmk-behavior-rgb-matrix. Provides the
+      keypaw,rgb-matrix-example compatible and an fx_example child node of &kprgb.

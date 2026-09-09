@@ -1,0 +1,25 @@
+# Copyright (c) 2026 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+description: |
+  Example custom keypaw RGB matrix effect, demonstrating the extension point. Declared
+  as a child node of the &kprgb behavior (e.g. fx_example { ... }); referenced from a
+  keymap by name (&fx_example). The explicit `index` is the stable identifier the
+  engine uses on the wire, like an SPI `reg` -- assign a unique value per effect, and
+  keep it equal to the node's position among &kprgb's children.
+
+  This compatible lives in the separate zmk-rgb-effect-example module to prove a new
+  effect can be added without editing zmk-behavior-rgb-matrix.
+
+compatible: "keypaw,rgb-matrix-example"
+
+include: [zero_param.yaml, "keypaw,rgb-matrix-effect-common.yaml"]
+
+properties:
+  tail-length:
+    type: int
+    required: false
+    default: 200
+    description: |
+      Custom field -- how far behind the comet head the fade extends, in the same
+      physical-layout units as the LEDs (100 = one key width).

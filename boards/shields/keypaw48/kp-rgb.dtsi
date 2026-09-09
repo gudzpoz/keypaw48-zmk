@@ -1,0 +1,79 @@
+/*
+ * Copyright (c) 2026 The ZMK Contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+/ {
+    behaviors {
+        // Behavior can be invoked on peripherals, so name must be <= 8 characters.
+        kprgb: kprgb {
+            compatible = "keypaw,behavior-rgb-matrix";
+            #binding-cells = <2>;
+            display-name = "RGB Matrix";
+
+            max-brightness = <40>;
+            idle-brightness = <30>;
+            initial-brightness = <30>;
+            initial-effect = <0>;
+            initial-on;
+
+            // Both `index` and the declaration order matter: an effect's index
+            // must equal its position among these children (they travel the
+            // split link as a single byte).
+            fx_solid: fx_solid {
+                compatible = "keypaw,rgb-matrix-solid";
+                #binding-cells = <0>;
+                index = <0>;
+                color = <0xFF0000>;
+            };
+            fx_breathe: fx_breathe {
+                compatible = "keypaw,rgb-matrix-breathe";
+                #binding-cells = <0>;
+                index = <1>;
+                color = <0x0000FF>;
+                duration = <2400>;
+            };
+            fx_spectrum: fx_spectrum {
+                compatible = "keypaw,rgb-matrix-spectrum";
+                #binding-cells = <0>;
+                index = <2>;
+                duration = <4000>;
+            };
+            fx_swirl: fx_swirl {
+                compatible = "keypaw,rgb-matrix-swirl";
+                #binding-cells = <0>;
+                index = <3>;
+                color = <0x00FF00>;
+                duration = <3000>;
+            };
+            fx_reactive: fx_reactive {
+                compatible = "keypaw,rgb-matrix-reactive";
+                #binding-cells = <0>;
+                index = <4>;
+                color = <0xFFFFFF>;
+                duration = <500>;
+                background-brightness = <10>;
+            };
+            fx_ripple: fx_ripple {
+                compatible = "keypaw,rgb-matrix-ripple";
+                #binding-cells = <0>;
+                index = <5>;
+                color = <0x00FFFF>;
+                duration = <2000>;
+                background-brightness = <10>;
+            };
+            /* Example custom effect from the separate zmk-rgb-effect-example
+             * module -- proves a new effect can be added without editing
+             * zmk-behavior-rgb-matrix. */
+            fx_example: fx_example {
+                compatible = "keypaw,rgb-matrix-example";
+                #binding-cells = <0>;
+                index = <6>;
+                color = <0x00FFAA>;
+                duration = <3000>;
+                tail-length = <200>;
+            };
+        };
+    };
+};

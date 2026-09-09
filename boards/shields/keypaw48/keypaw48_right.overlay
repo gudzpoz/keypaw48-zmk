@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <dt-bindings/keypaw/rgb_matrix.h>
+
 #include "keypaw48.dtsi"
 #include "kp-peri_right.dtsi"
 
@@ -11,6 +13,28 @@
 };
 
 / {
+    rgb_matrix: rgb-matrix {
+        compatible = "keypaw,rgb-matrix";
+        strip = <&led_strip>;
+        physical-layout = <&default_layout>;
+
+        mapping = <
+        6 7 8 9 10 11
+        23 22 21 20 19 18
+        30 31 32 33 34 35
+
+        KP_RGB_NO_KEY(1450, 387) // between 35 & 47
+        KP_RGB_NO_KEY(1350, 387) // between 34 & 46
+        KP_RGB_NO_KEY(1250, 400) // ~to the left of the previous LED
+        KP_RGB_NO_KEY(1180, 350) // ~to the top left of the previous LED
+        47 46
+        KP_RGB_NO_KEY(1000, 500) // ~to the right of 42
+        42
+        KP_RGB_NO_KEY(850, 475)  // ~to the left of 42
+        43 44 45
+        >;
+    };
+
     glidepoint_listener {
         compatible = "zmk,input-listener";
         device = <&paw3395>;

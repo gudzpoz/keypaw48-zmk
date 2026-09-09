@@ -1,5 +1,6 @@
 // See https://zmk.dev/docs/development/hardware-integration/physical-layouts
 // for how to configure this.
+// Use https://zmk-physical-layout-converter.streamlit.app/ for visualization.
 
 #include <physical_layouts.dtsi>
 
