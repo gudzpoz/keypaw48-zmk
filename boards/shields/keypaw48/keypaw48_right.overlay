@@ -18,6 +18,10 @@
         strip = <&led_strip>;
         physical-layout = <&default_layout>;
 
+        /* Indicators composited over the active effect, in paint order (declared
+         * in kp-rgb.dtsi). An effect may override this list for itself. */
+        indicators = <&caps &layer_fn>;
+
         mapping = <
         6 7 8 9 10 11
         23 22 21 20 19 18

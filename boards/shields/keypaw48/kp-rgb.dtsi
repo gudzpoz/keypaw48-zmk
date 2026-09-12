@@ -4,7 +4,31 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <dt-bindings/zmk/rgb.h>
+
 / {
+    // Indicators composited over the active effect, declared once here and
+    // referenced from each half's &rgb_matrix node (see the overlays). They are
+    // deliberately NOT children of &kprgb: those are the effect registry, whose
+    // `index` must equal the child position.
+    rgb_indicators {
+        // Placeholder target: point this at whatever key you bind Caps to. The
+        // default keymap has no Caps binding, so this stays dark until then.
+        caps: caps {
+            compatible = "keypaw,rgb-indicator-caps-lock";
+            keys = <30>;
+            color = <0x00FF00>;
+        };
+
+        // One node per layer that should show on its own LED.
+        layer_fn: layer_fn {
+            compatible = "keypaw,rgb-indicator-layer";
+            layer = <1>;      // the Fn layer
+            keys = <35>;      // the key bound to &mo 1
+            color = <0xFF8000>;
+        };
+    };
+
     behaviors {
         // Behavior can be invoked on peripherals, so name must be <= 8 characters.
         kprgb: kprgb {
@@ -26,6 +50,8 @@
                 #binding-cells = <0>;
                 index = <0>;
                 color = <0xFF0000>;
+                // Per-effect override: only the Caps LED is composited here.
+                indicators = <&caps>;
             };
             fx_breathe: fx_breathe {
                 compatible = "keypaw,rgb-matrix-breathe";
@@ -62,6 +88,8 @@
                 color = <0x00FFFF>;
                 duration = <2000>;
                 background-brightness = <10>;
+                // Radial ripples own the whole half: keep the canvas clean.
+                no-indicators;
             };
             /* Example custom effect from the separate zmk-rgb-effect-example
              * module -- proves a new effect can be added without editing
