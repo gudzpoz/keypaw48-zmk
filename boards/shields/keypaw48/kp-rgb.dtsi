@@ -29,6 +29,37 @@
         };
     };
 
+    // Condition -> command rules, evaluated on the central and pushed to both
+    // halves. The table's children are the triggers, and their DECLARATION
+    // ORDER is the precedence order: the first one whose condition is active
+    // wins.
+    //
+    // There is deliberately no `triggers = <...>;` list here: every devicetree
+    // node depends on its parent, so a parent pointing at its own child is a
+    // phandle cycle. And these nodes are NOT children of &kprgb, whose children
+    // are the effect registry (an effect's `index` must equal the child
+    // position) -- besides which the bindings below reference &kprgb back.
+    rgb_triggers {
+        compatible = "keypaw,rgb-trigger-table";
+
+        // Catch-all: fires when nothing earlier matched. Must be declared LAST;
+        // nothing enforces that. Bound to index 0 (fx_solid), which is what
+        // `initial-effect` already selects, so the default look is unchanged.
+        trig_default: trig_default {
+            compatible = "keypaw,rgb-trigger-always";
+            bindings = <&kprgb RGB_EFS_CMD 0>;
+        };
+
+        // Example: switch to fx_fn_orange while the Fn layer is held. To enable,
+        // uncomment this node and DECLARE IT ABOVE trig_default:
+        //
+        // trig_fn: trig_fn {
+        //     compatible = "keypaw,rgb-trigger-layer";
+        //     layer = <1>;
+        //     bindings = <&kprgb RGB_EFS_CMD 7>;
+        // };
+    };
+
     behaviors {
         // Behavior can be invoked on peripherals, so name must be <= 8 characters.
         kprgb: kprgb {
@@ -101,6 +132,16 @@
                 color = <0x00FFAA>;
                 duration = <3000>;
                 tail-length = <200>;
+            };
+            /* Layer variant, reached only through the &trig_fn example above.
+             * `no-cycle` keeps it out of RGB_EFF/EFR so it does not clutter the
+             * normal cycle; RGB_EFS 7 and a trigger can still select it. */
+            fx_fn_orange: fx_fn_orange {
+                compatible = "keypaw,rgb-matrix-solid";
+                #binding-cells = <0>;
+                index = <7>;
+                color = <0xFF8000>;
+                no-cycle;
             };
         };
     };
