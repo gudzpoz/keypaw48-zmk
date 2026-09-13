@@ -53,7 +53,7 @@ static void kp_eff_example_render(const struct device *dev, struct kp_rgb_frame 
   uint32_t board = MAX(f->board_length, 1u);
   int32_t head = (int32_t)(phase * board / period);
   int32_t tail = MAX(cfg->tail_length, 1);
-  struct kp_rgb_hsb base = kp_rgb_hex_to_hsb(data->common.color_hex);
+  struct kp_rgb_hsb base = data->common.color;
 
   for (size_t i = 0; i < f->count; i++) {
     int32_t d = (int32_t)f->coords[i].x - head;
@@ -77,7 +77,8 @@ static void kp_eff_example_render(const struct device *dev, struct kp_rgb_frame 
   static struct kp_eff_example_data kp_eff_example_##inst##_data = {               \
       .common =                                                                    \
           {                                                                        \
-              .color_hex = DT_PROP_OR(DT_DRV_INST(inst), color, 0x00FFAA),         \
+              .color = KP_RGB_HSB_FROM_HEX(                                        \
+                  DT_PROP_OR(DT_DRV_INST(inst), color, 0x00FFAA)),                 \
               .duration_ms = DT_PROP_OR(DT_DRV_INST(inst), duration, 0),           \
           },                                                                       \
   };                                                                               \
