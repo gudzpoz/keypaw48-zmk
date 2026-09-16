@@ -9,7 +9,7 @@ description: |
   keep it equal to the node's position among &kprgb's children.
 
   This compatible lives in the separate zmk-rgb-effect-example module to prove a new
-  effect can be added without editing zmk-behavior-rgb-matrix.
+  effect can be added without editing zmk-rgb-matrix.
 
 compatible: "keypaw,rgb-matrix-example"
 

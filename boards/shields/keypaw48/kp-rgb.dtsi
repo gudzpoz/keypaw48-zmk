@@ -7,10 +7,9 @@
 #include <dt-bindings/zmk/rgb.h>
 
 / {
-    // Indicators composited over the active effect, declared once here and
-    // referenced from each half's &rgb_matrix node (see the overlays). They are
-    // deliberately NOT children of &kprgb: those are the effect registry, whose
-    // `index` must equal the child position.
+    // Indicators are listed on each behavior in paint order. They remain
+    // outside &kprgb because its children are the effect registry; this shared
+    // list is referenced by the behavior below.
     rgb_indicators {
         // Placeholder target: point this at whatever key you bind Caps to. The
         // default keymap has no Caps binding, so this stays dark until then.
@@ -47,7 +46,8 @@
         // `initial-effect` already selects, so the default look is unchanged.
         trig_default: trig_default {
             compatible = "keypaw,rgb-trigger-always";
-            bindings = <&kprgb RGB_EFS_CMD 0>;
+            // bindings = <&kprgb RGB_EFS_CMD 0>;
+            bindings = <&fx_solid>; // TODO: Can we do this?
         };
 
         // Example: switch to fx_fn_orange while the Fn layer is held. To enable,
@@ -59,6 +59,30 @@
         //     bindings = <&kprgb RGB_EFS_CMD 7>;
         // };
     };
+
+    // A multi-zone setup can declare another sibling behavior with its own
+    // effect registry. Keep each behavior name <= 8 characters for split:
+    //
+    // rgb_main: rgb_main {
+    //     compatible = "keypaw,behavior-rgb-matrix";
+    //     #binding-cells = <2>;
+    //     leds = <0 1 2 3 4 5 6 7>;
+    //     fx_main: fx_main {
+    //         compatible = "keypaw,rgb-matrix-solid";
+    //         #binding-cells = <0>;
+    //         index = <0>;
+    //     };
+    // };
+    // rgb_num: rgb_num {
+    //     compatible = "keypaw,behavior-rgb-matrix";
+    //     #binding-cells = <2>;
+    //     leds = <8 9 10 11 12 13 14 15>;
+    //     fx_num: fx_num {
+    //         compatible = "keypaw,rgb-matrix-solid";
+    //         #binding-cells = <0>;
+    //         index = <0>;
+    //     };
+    // };
 
     behaviors {
         // Behavior can be invoked on peripherals, so name must be <= 8 characters.
@@ -72,6 +96,7 @@
             initial-brightness = <30>;
             initial-effect = <0>;
             initial-on;
+            indicators = <&caps &layer_fn>;
 
             // Both `index` and the declaration order matter: an effect's index
             // must equal its position among these children (they travel the
@@ -97,17 +122,10 @@
                 index = <2>;
                 duration = <4000>;
             };
-            fx_swirl: fx_swirl {
-                compatible = "keypaw,rgb-matrix-swirl";
-                #binding-cells = <0>;
-                index = <3>;
-                color = <0x00FF00>;
-                duration = <3000>;
-            };
             fx_reactive: fx_reactive {
                 compatible = "keypaw,rgb-matrix-reactive";
                 #binding-cells = <0>;
-                index = <4>;
+                index = <3>;
                 color = <0xFFFFFF>;
                 duration = <500>;
                 background-brightness = <10>;
@@ -115,7 +133,7 @@
             fx_ripple: fx_ripple {
                 compatible = "keypaw,rgb-matrix-ripple";
                 #binding-cells = <0>;
-                index = <5>;
+                index = <4>;
                 color = <0x00FFFF>;
                 duration = <2000>;
                 background-brightness = <10>;
@@ -124,11 +142,11 @@
             };
             /* Example custom effect from the separate zmk-rgb-effect-example
              * module -- proves a new effect can be added without editing
-             * zmk-behavior-rgb-matrix. */
+             * zmk-rgb-matrix. */
             fx_example: fx_example {
                 compatible = "keypaw,rgb-matrix-example";
                 #binding-cells = <0>;
-                index = <6>;
+                index = <5>;
                 color = <0x00FFAA>;
                 duration = <3000>;
                 tail-length = <200>;
@@ -139,9 +157,85 @@
             fx_fn_orange: fx_fn_orange {
                 compatible = "keypaw,rgb-matrix-solid";
                 #binding-cells = <0>;
-                index = <7>;
+                index = <6>;
                 color = <0xFF8000>;
                 no-cycle;
+            };
+
+            /* Moving spatial fields share compatible families; attributes pick
+             * the sub-effect. Instantiate more nodes for extra cycle entries. */
+            fx_rainbow: fx_rainbow {
+                compatible = "keypaw,rgb-matrix-rainbow";
+                #binding-cells = <0>;
+                index = <7>;
+                color = <0xFFFFFF>;
+                duration = <4000>;
+                basis = "x";
+                direction = "out";
+                palette = "rainbow";
+            };
+            fx_band: fx_band {
+                compatible = "keypaw,rgb-matrix-band";
+                #binding-cells = <0>;
+                index = <8>;
+                color = <0x00FF00>;
+                duration = <3000>;
+                channel = "sat";
+                shape = "linear";
+            };
+            fx_static: fx_static {
+                compatible = "keypaw,rgb-matrix-static";
+                #binding-cells = <0>;
+                index = <9>;
+                color = <0xFFFFFF>;
+                /* Per-LED colours indexed by strip chain position (left half has
+                 * 30 LEDs). A stand-in for QMK ALPHAS_MODS: alternate hues to
+                 * show per-key control. Edit to taste. */
+                led-colors = <
+                    0x0000FF 0x0000FF 0x0000FF 0x0000FF 0x0000FF 0x0000FF
+                    0xFF0000 0xFF0000 0xFF0000 0xFF0000 0xFF0000 0xFF0000
+                    0x0000FF 0x0000FF 0x0000FF 0x0000FF 0x0000FF 0x0000FF
+                    0xFF0000 0xFF0000 0xFF0000 0xFF0000 0xFF0000 0xFF0000
+                    0x00FF00 0x00FF00 0x00FF00 0x00FF00 0x00FF00 0x00FF00
+                >;
+            };
+
+            /* Stochastic fields share compatible families; attributes pick the
+             * sub-effect. Instantiate more nodes for extra cycle entries. */
+            fx_rain: fx_rain {
+                compatible = "keypaw,rgb-matrix-rain";
+                #binding-cells = <0>;
+                index = <10>;
+                color = <0xFFFFFF>;
+                duration = <4000>;
+                mode = "drops";
+            };
+            fx_starlight: fx_starlight {
+                compatible = "keypaw,rgb-matrix-starlight";
+                #binding-cells = <0>;
+                index = <11>;
+                color = <0xFFFFFF>;
+                duration = <4000>;
+                smooth;
+                dual-hue;
+                dual-sat;
+            };
+            fx_heatmap: fx_heatmap {
+                compatible = "keypaw,rgb-matrix-heatmap";
+                #binding-cells = <0>;
+                index = <12>;
+                color = <0xFFFFFF>;
+                decrease-delay-ms = <25>;
+                spread = <40>;
+                area-limit = <16>;
+                increase-step = <32>;
+            };
+            fx_digital_rain: fx_digital_rain {
+                compatible = "keypaw,rgb-matrix-digital-rain";
+                #binding-cells = <0>;
+                index = <13>;
+                color = <0x00FF00>;
+                duration = <4000>;
             };
         };
     };

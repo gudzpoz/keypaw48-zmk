@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: MIT
  *
  * Example custom RGB matrix effect, provided by a SEPARATE module to demonstrate the
- * zmk-behavior-rgb-matrix extension point: a "comet" whose bright head sweeps along
- * the board's x axis and fades out behind it. Adding this effect requires NO edits to
- * zmk-behavior-rgb-matrix -- only:
+ * zmk-rgb-matrix extension point: a "comet" whose bright head sweeps along the
+ * board's x axis and fades out behind it. Adding this effect requires NO edits to
+ * zmk-rgb-matrix -- only:
  *
  *   1. this compatible's binding yaml (dts/bindings/keypaw,rgb-matrix-example.yaml),
  *   2. this render function + a KP_RGB_EFFECT_DEFINE call, and

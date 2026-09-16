@@ -9,5 +9,5 @@ config ZMK_RGB_EFFECT_EXAMPLE
     depends on DT_HAS_KEYPAW_RGB_MATRIX_EXAMPLE_ENABLED
     help
       A worked example of adding a brand-new RGB matrix effect from a *separate*
-      module, with no edits to zmk-behavior-rgb-matrix. Provides the
+      module, with no edits to zmk-rgb-matrix. Provides the
       keypaw,rgb-matrix-example compatible and an fx_example child node of &kprgb.
