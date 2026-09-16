@@ -13,3 +13,6 @@ zephyr_library_sources_ifdef(CONFIG_ZMK_WIDGET_RGB_PERIPHERAL_STATUS widgets/per
 zephyr_library_sources_ifdef(CONFIG_ZMK_WIDGET_RGB_WPM_STATUS widgets/wpm_status.c)
 
 zephyr_library_sources_ifdef(CONFIG_ZMK_WIDGET_RGB_ICONS widgets/icons/icons.c)
+
+zephyr_library_sources_ifdef(CONFIG_ZMK_BEHAVIOR_JD9613_BRIGHTNESS behavior_jd9613_brightness.c)
+zephyr_library_include_directories(${APPLICATION_SOURCE_DIR}/include)

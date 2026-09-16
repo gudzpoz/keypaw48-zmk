@@ -1,0 +1,8 @@
+# Copyright (c) 2026 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+description: JD9613 display brightness control behavior
+
+compatible: "zmk,behavior-jd9613-brightness"
+
+include: one_param.yaml

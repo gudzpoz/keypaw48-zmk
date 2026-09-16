@@ -179,3 +179,26 @@ config ZMK_WIDGET_RGB_WPM_STATUS
     select LV_USE_IMAGE
     select LV_USE_LABEL
     select ZMK_WPM
+
+########################
+# Brightness Behavior #
+########################
+
+config ZMK_BEHAVIOR_JD9613_BRIGHTNESS
+    bool "JD9613 display brightness behavior"
+    default y
+    depends on DT_HAS_ZMK_BEHAVIOR_JD9613_BRIGHTNESS_ENABLED
+    select SETTINGS
+    select SETTINGS_RUNTIME
+    help
+        Behavior (&jd_brt) to adjust the JD9613 screen brightness via
+        relative inc/dec steps (JD_BRT_INC / JD_BRT_DEC). The level is
+        persisted across reboot via Zephyr settings.
+
+config ZMK_JD9613_BRIGHTNESS_STEP
+    int "Brightness step in percent"
+    default 10
+    range 1 100
+    depends on ZMK_BEHAVIOR_JD9613_BRIGHTNESS
+    help
+        How many percent each inc/dec press changes the brightness.
