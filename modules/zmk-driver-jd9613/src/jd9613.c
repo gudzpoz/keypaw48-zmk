@@ -416,55 +416,6 @@ static int jd9613_set_rotation(const struct device *dev,
   return 0;
 }
 
-static const uint8_t LOGO[] = {
-  0b11000011,
-  0b11000110,
-  0b11001100,
-  0b11111000,
-  0b11111000,
-  0b11001100,
-  0b11000110,
-  0b11000011,
-};
-static int jd9613_logo(const struct device *dev) {
-  const struct jd9613_cfg *cfg = dev->config;
-  const struct jd9613_data *data = dev->data;
-
-  const uint16_t a = 8;
-  const uint16_t zoom = 8;
-  const uint16_t px = a * 8;
-  uint16_t x0 = (cfg->width / 2 - px / 2) & ~1;
-  uint16_t y0 = (cfg->height / 2 - px / 2) & ~1;
-
-  int ret = jd9613_set_window(cfg, x0, y0, x0 + px - 1, y0 + px - 1);
-  if (ret < 0) {
-    return ret;
-  }
-
-  uint8_t zeros[] = {
-    0,0,0, 0,0,0, 0,0,0, 0,0,0,
-    0,0,0, 0,0,0, 0,0,0, 0,0,0,
-  };
-  uint8_t ones[] = {
-    0xFF,0xFF,0xFF, 0xFF,0xFF,0xFF, 0xFF,0xFF,0xFF, 0xFF,0xFF,0xFF,
-    0xFF,0xFF,0xFF, 0xFF,0xFF,0xFF, 0xFF,0xFF,0xFF, 0xFF,0xFF,0xFF,
-  };
-  int len = data->pixel_format == PIXEL_FORMAT_RGB_888 ? 3 : 2;
-  for (int y = 0; y < a; y++) {
-    for (int n = 0; n < zoom; n++) {
-      for (int x = 0; x < a; x++) {
-        uint8_t *pixel = (uint8_t *) ((LOGO[y] & (1 << (7 - x))) ? ones : zeros);
-        ret = jd9613_write_cmd(cfg, JD9613_CMD_WRMEMC, pixel, len * zoom);
-        if (ret < 0) {
-          return ret;
-        }
-      }
-    }
-  }
-
-  return 0;
-}
-
 static int jd9613_controller_init(const struct device *dev) {
   const struct jd9613_cfg *cfg = dev->config;
   int ret;
@@ -501,11 +452,6 @@ static int jd9613_full_init(const struct device *dev) {
   }
 
   ret = jd9613_set_pixel_format(dev, data->pixel_format);
-  if (ret < 0) {
-    return ret;
-  }
-
-  ret = jd9613_logo(dev);
   if (ret < 0) {
     return ret;
   }
