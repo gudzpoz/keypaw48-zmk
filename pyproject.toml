@@ -6,6 +6,7 @@ requires-python = ">=3.12"
 dependencies = [
     "lz4>=4.4.5",
     "numpy>=2.5.2",
+    "pyelftools>=0.33",
     "pypng>=0.20220715.0",
     "python-material-icons>=0.3.2",
     "zmk>=0.4.1",

@@ -1,17 +1,216 @@
+/*
+ * Copyright (c) 2026 The ZMK Contributors
+ * SPDX-License-Identifier: MIT
+ */
+
 #include <behaviors.dtsi>
 #include <dt-bindings/zmk/keys.h>
+#include <dt-bindings/zmk/pointing.h>
+#include <dt-bindings/zmk/bt.h>
+#include <dt-bindings/zmk/ext_power.h>
+#include <dt-bindings/zmk/outputs.h>
+#include <dt-bindings/keypaw/rgb_matrix.h>
+#include <dt-bindings/zmk/display_brightness.h>
+#include <dt-bindings/zmk/dynamic_macro.h>
+
+#define TT(layer) &tt layer layer
+#define TT2(layer1, layer2) &tt layer1 layer2
+#define BT(profile) &bt BT_SEL profile
+#define DM(slot) &dm DM_PLAY slot
+
+// Layers
+#define MOD 0
+#define COL 1
+#define QWE 2
+#define FN1 3
+#define FN2 4
+#define NUM 5
+#define PAD 6
+#define ARR 7
 
 / {
+    behaviors {
+        jd_brt: jd_brt {
+            compatible = "zmk,behavior-jd9613-brightness";
+            #binding-cells = <1>;
+        };
+
+        dm: dm {
+            compatible = "zmk,behavior-dynamic-macro";
+            #binding-cells = <2>;
+        };
+
+        tt: layer_tap_toggle {
+            compatible = "zmk,behavior-hold-tap";
+            #binding-cells = <2>;
+            flavor = "hold-preferred";
+            tapping-term-ms = <200>;
+            bindings = <&mo>, <&tog>;
+        };
+    };
+
+    macros {
+        bri_both: bri_both {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kprgb RGB_BRI &jd_brt JD_BRT_INC>;
+        };
+        brd_both: brd_both {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&kprgb RGB_BRD &jd_brt JD_BRT_DEC>;
+        };
+    };
+
+    default_colemak {
+        compatible = "zmk,conditional-layers";
+        tri_layer {
+            if-layers = <MOD>;
+            then-layer = <COL>;
+        };
+    };
+
+    // Define a default keymap here.
+    // See https://zmk.dev/docs/development/hardware-integration/new-shield#default-keymap.
     keymap {
         compatible = "zmk,keymap";
 
-        default_layer {
+        base { // #0: basic modifiers
             bindings = <
-                &kp TAB   &kp Q &kp W &kp E &kp R &kp T    &kp Y &kp U &kp I     &kp O   &kp P    &kp BSPC
-                &kp ESC   &kp A &kp S &kp D &kp F &kp G    &kp H &kp J &kp K     &kp L   &kp SEMI &kp SQT
-                &kp LSHFT &kp Z &kp X &kp C &kp V &kp B    &kp N &kp M &kp COMMA &kp DOT &kp FSLH &kp ESC
-                &kp LCTRL &kp LALT &kp LEFT &kp UP &kp RIGHT &kp DOWN    &kp SPACE &kp LGUI &kp BSLH &kp ENT &kp RALT &kp RCTRL
+            &kp GRAVE &trans &trans &trans &trans &trans    &trans &trans &trans    &trans  &trans   &kp BSPC
+            &kp TAB   &trans &trans &trans &trans &trans    &trans &trans &trans    &trans  &trans   &kp SQT
+            &kp LALT  &trans &trans &trans &trans &trans    &trans &trans &kp COMMA &kp DOT &kp FSLH &kp BSLH
+
+            &kp LCTRL TT(FN1) TT2(NUM, PAD) &kp ESC &mo FN2 &kp LSHFT
+
+            &kp SPACE &kp LGUI TT(FN1) &mkp LCLK &mkp RCLK &kp ENTER
             >;
         };
+        colemak_dh_layer { // #1
+            display-name = "Colemak";
+            bindings = <
+            &trans &kp Q &kp W &kp F &kp P &kp B    &kp J &kp L &kp U  &kp Y  &kp SEMI &trans
+            &trans &kp A &kp R &kp S &kp T &kp G    &kp M &kp N &kp E  &kp I  &kp O    &trans
+            &trans &kp Z &kp X &kp C &kp D &kp V    &kp K &kp H &trans &trans &trans   &trans
+            &trans &trans &trans &trans &trans &trans
+            &trans &trans &trans &trans &trans &trans
+            >;
+        };
+        qwerty_layer { // #2
+            display-name = "Qwerty";
+            bindings = <
+            &trans &kp Q &kp W &kp E &kp R &kp T    &kp Y &kp U &kp I  &kp O  &kp P    &trans
+            &trans &kp A &kp S &kp D &kp F &kp G    &kp H &kp J &kp K  &kp L  &kp SEMI &trans
+            &trans &kp Z &kp X &kp C &kp V &kp B    &kp N &kp M &trans &trans &trans   &trans
+            &trans &trans &trans &trans &trans &trans
+            &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        fn1_layer { // #3: Extra keys & layer switches
+            display-name = "Fn_1";
+
+            bindings = <
+            &to COL &to QWE &kp PG_UP &kp UP   &kp PG_DN &kp HOME    &trans &kp UNDER &kp PLUS  &kp LBRC &kp RBRC &kp DEL
+            &trans  &trans  &kp LEFT  &kp DOWN &kp RIGHT &kp END     &trans &kp MINUS &kp EQUAL &kp LBKT &kp RBKT &kp INS
+            &trans  &trans  &trans &trans &trans   &trans    &trans &trans &trans &trans &trans &trans
+            &trans  &trans  &trans &trans &tog ARR &trans    &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        fn2_layer { // #4: Keyboard & media controls
+            display-name = "Fn_2";
+            bindings = <
+            &trans &trans &trans         &bri_both &trans &trans            BT(0) BT(1) BT(2) BT(3) BT(4) &bt BT_CLR
+            &trans &trans &kprgb RGB_TOG &brd_both &kprgb RGB_EFF &trans    DM(0) DM(1) DM(2) DM(3) DM(4) &dm DM_REC
+            &bootloader       &trans &trans &trans &trans &trans    &trans &trans &trans &trans &trans &bootloader
+            &ext_power EP_TOG &trans &trans &trans &trans &trans    &trans &trans &trans &trans &trans &out OUT_TOG
+            >;
+        };
+
+        num_layer { // #5: Numbers on the home row
+            display-name = "Num";
+            bindings = <
+            &trans &kp F1 &kp F2 &kp F3 &kp F4 &kp F5    &kp F6 &kp F7 &kp F8 &kp F9 &kp F10 &kp F11
+            &trans &kp N1 &kp N2 &kp N3 &kp N4 &kp N5    &kp N6 &kp N7 &kp N8 &kp N9 &kp N0  &kp F12
+            &trans &kp EXCL &kp AT &kp HASH &kp DLLR &kp PRCNT
+            &kp CARET &kp AMPS &kp STAR &kp LPAR &kp RPAR  &trans
+            &trans &trans &trans &trans &trans &trans    &trans &trans &trans &trans &trans  &trans
+            >;
+        };
+        pad_layer { // #6: Keypad
+            display-name = "Pad";
+            bindings = <
+            &trans &kp KP_SLASH &kp KP_N7 &kp KP_N8 &kp KP_N9 &kp KP_MINUS       &kp KP_MINUS    &kp KP_N7 &kp KP_N8 &kp KP_N9 &kp KP_SLASH &trans
+            &trans &kp KP_N0    &kp KP_N4 &kp KP_N5 &kp KP_N6 &kp KP_PLUS        &kp KP_PLUS     &kp KP_N4 &kp KP_N5 &kp KP_N6 &kp KP_N0    &trans
+            &trans &kp KP_DOT   &kp KP_N1 &kp KP_N2 &kp KP_N3 &kp KP_MULTIPLY    &kp KP_MULTIPLY &kp KP_N1 &kp KP_N2 &kp KP_N3 &kp KP_DOT   &trans
+
+            &trans &trans &trans &trans &trans &trans    &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        arrow_layer { // #7: Arrow layer
+            display-name = "Arrow";
+            bindings = <
+            &trans &trans &trans &trans &trans &trans    &trans &trans &trans &trans &trans &trans
+            &trans &trans &trans &trans &trans &trans    &trans &trans &trans &trans &trans &trans
+            &trans &trans &trans &trans &trans &trans    &trans &trans &trans &trans &trans &trans
+            &trans &trans &kp LEFT &kp UP &kp RIGHT &kp DOWN
+            &trans &trans &trans &trans &trans &trans
+            >;
+        };
+    };
+};
+
+&rgb_triggers {
+    trig_fn: trig_fn {
+        compatible = "keypaw,rgb-trigger-layer";
+        layer = <QWE>;
+        bindings = <&fx_spectrum>;
+    };
+
+    trig_default: trig_default {
+        compatible = "keypaw,rgb-trigger-always";
+        bindings = <&fx_heatmap>;
+    };
+};
+
+&rgb_indicators {
+    // One node per layer that should show on its own LED.
+    layer_fn1: layer_fn1 {
+        compatible = "keypaw,rgb-indicator-layer";
+        layer = <FN1>;
+        keys = <
+        2  3  4  5   7  8  9  10 11
+        14 15 16 17  19 20 21 22 23
+        >;
+        color = <0xFF8000>;
+    };
+    layer_fn2: layer_fn2 {
+        compatible = "keypaw,rgb-indicator-layer";
+        layer = <FN2>;
+        keys = <
+        3 14 15 16
+        24 35
+        >;
+        color = <0x0080FF>;
+    };
+    layer_num: layer_num {
+        compatible = "keypaw,rgb-indicator-layer";
+        layer = <NUM>;
+        keys = <
+        13 14 15 16 17 18 19 20 21 22
+        >;
+        color = <0xFF8000>;
+    };
+    layer_pad: layer_pad {
+        compatible = "keypaw,rgb-indicator-layer";
+        layer = <PAD>;
+        keys = <
+        2  3  4   7  8  9
+        13 14 15 16  19 20 21 22
+        26 27 28  31 32 33
+        >;
+        color = <0xFF8000>;
     };
 };

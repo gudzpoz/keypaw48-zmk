@@ -10,31 +10,23 @@
     // Indicators are listed on each behavior in paint order. They remain
     // outside &kprgb because its children are the effect registry; this shared
     // list is referenced by the behavior below.
-    rgb_indicators {
+    rgb_indicators: rgb_indicators {
         // Placeholder target: point this at whatever key you bind Caps to. The
         // default keymap has no Caps binding, so this stays dark until then.
         caps: caps {
             compatible = "keypaw,rgb-indicator-caps-lock";
-            keys = <30>;
-            color = <0x00FF00>;
+            keys = <41>;
+            color = <0x00FFFF>;
         };
 
-        // One node per layer that should show on its own LED.
-        layer_fn: layer_fn {
-            compatible = "keypaw,rgb-indicator-layer";
-            layer = <1>;      // the Fn layer
-            keys = <35>;      // the key bound to &mo 1
-            color = <0xFF8000>;
-        };
-
-        // Lights while &dm is recording. Position 18 is the &dm DM_REC key on
-        // the Fn layer (a plain &kp J on the base layer) and lives on the right
-        // (central) half, so the peripheral never resolves it and stays dark.
+        // Lights while &dm is recording. Keys have to be on the central half.
         dm_rec: dm_rec {
             compatible = "keypaw,rgb-indicator-dynamic-macro";
-            keys = <18>;
+            keys = <11 23 35>;
             color = <0xFF0000>;
         };
+
+        // Layer indicators are defined in keypaw48.keymap.
     };
 
     // Condition -> command rules, evaluated on the central and pushed to both
@@ -47,26 +39,9 @@
     // phandle cycle. And these nodes are NOT children of &kprgb, whose children
     // are the effect registry (an effect's `index` must equal the child
     // position) -- besides which the bindings below reference &kprgb back.
-    rgb_triggers {
+    rgb_triggers: rgb_triggers {
         compatible = "keypaw,rgb-trigger-table";
-
-        // Catch-all: fires when nothing earlier matched. Must be declared LAST;
-        // nothing enforces that. Bound to index 0 (fx_solid), which is what
-        // `initial-effect` already selects, so the default look is unchanged.
-        trig_default: trig_default {
-            compatible = "keypaw,rgb-trigger-always";
-            // bindings = <&kprgb RGB_EFS_CMD 0>;
-            bindings = <&fx_solid>; // TODO: Can we do this?
-        };
-
-        // Example: switch to fx_fn_orange while the Fn layer is held. To enable,
-        // uncomment this node and DECLARE IT ABOVE trig_default:
-        //
-        // trig_fn: trig_fn {
-        //     compatible = "keypaw,rgb-trigger-layer";
-        //     layer = <1>;
-        //     bindings = <&kprgb RGB_EFS_CMD 7>;
-        // };
+        // The actual triggers are defined in keypaw48.keymap.
     };
 
     // A multi-zone setup can declare another sibling behavior with its own
@@ -105,7 +80,7 @@
             initial-brightness = <30>;
             initial-effect = <0>;
             initial-on;
-            indicators = <&caps &layer_fn &dm_rec>;
+            indicators = <&caps &dm_rec &layer_fn1 &layer_fn2 &layer_num &layer_pad>;
 
             // Both `index` and the declaration order matter: an effect's index
             // must equal its position among these children (they travel the
