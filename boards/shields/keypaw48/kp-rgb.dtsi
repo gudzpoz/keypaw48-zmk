@@ -26,6 +26,15 @@
             keys = <35>;      // the key bound to &mo 1
             color = <0xFF8000>;
         };
+
+        // Lights while &dm is recording. Position 18 is the &dm DM_REC key on
+        // the Fn layer (a plain &kp J on the base layer) and lives on the right
+        // (central) half, so the peripheral never resolves it and stays dark.
+        dm_rec: dm_rec {
+            compatible = "keypaw,rgb-indicator-dynamic-macro";
+            keys = <18>;
+            color = <0xFF0000>;
+        };
     };
 
     // Condition -> command rules, evaluated on the central and pushed to both
@@ -96,7 +105,7 @@
             initial-brightness = <30>;
             initial-effect = <0>;
             initial-on;
-            indicators = <&caps &layer_fn>;
+            indicators = <&caps &layer_fn &dm_rec>;
 
             // Both `index` and the declaration order matter: an effect's index
             // must equal its position among these children (they travel the
@@ -106,8 +115,11 @@
                 #binding-cells = <0>;
                 index = <0>;
                 color = <0xFF0000>;
-                // Per-effect override: only the Caps LED is composited here.
-                indicators = <&caps>;
+                // Per-effect override: only the Caps LED and the dynamic-macro
+                // recording LED are composited here. fx_solid is initial-effect,
+                // so dm_rec must be listed or recording feedback would be dark
+                // at boot.
+                indicators = <&caps &dm_rec>;
             };
             fx_breathe: fx_breathe {
                 compatible = "keypaw,rgb-matrix-breathe";

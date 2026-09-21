@@ -1,0 +1,11 @@
+# Copyright (c) 2026 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+description: |
+  Dynamic macro recording indicator: paints its targeted LEDs while &dm is
+  recording a take into a scratch buffer. State is sampled on every RGB tick
+  through the module's internal accessor, so there is nothing to subscribe to.
+
+compatible: "keypaw,rgb-indicator-dynamic-macro"
+
+include: ["keypaw,rgb-indicator-common.yaml"]

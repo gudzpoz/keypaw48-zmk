@@ -42,6 +42,8 @@
 
 #include <dt-bindings/zmk/dynamic_macro.h>
 
+#include "dynamic_macro_state.h"
+
 LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 #if DT_HAS_COMPAT_STATUS_OKAY(DT_DRV_COMPAT)
@@ -62,12 +64,17 @@ struct dm_slot {
  * handlers, kscan and split position events, and the playback pacer are all
  * delivered there. That workqueue is single threaded and event dispatch is
  * synchronous, so no locking is needed -- do not "fix" this with a mutex.
+ *
+ * The one exception is dm_recording, which the RGB matrix's indicator kind reads
+ * from the low-priority workqueue. It is a single naturally aligned word, so the
+ * read cannot tear; it may merely lag one render tick, which is immaterial for
+ * an indicator. Hence `volatile`, and still no lock.
  */
 static struct dm_slot dm_slots[CONFIG_ZMK_DYNAMIC_MACRO_SLOTS];
 static struct dm_event dm_heap[CONFIG_ZMK_DYNAMIC_MACRO_MAX_EVENTS];
 static uint8_t dm_heap_states[(CONFIG_ZMK_DYNAMIC_MACRO_MAX_EVENTS + 7) / 8];
 
-static bool dm_recording;
+static volatile bool dm_recording;
 static struct dm_slot dm_scratch;
 static uint16_t dm_dropped;
 
@@ -79,6 +86,10 @@ static uint16_t dm_play_index;
 #define SET_DM_HEAP_STATE_FOR(n, v)                                            \
   dm_heap_states[(n) / 8] = (dm_heap_states[(n) / 8] & ~(1 << ((n) & 7))) |    \
                             ((v) ? (1 << ((n) & 7)) : 0)
+
+/* Read by the RGB indicator kind (rgb_indicator_dynamic_macro.c), which runs on
+ * the low-priority workqueue. See the note above the state. */
+bool zmk_dynamic_macro_is_recording(void) { return dm_recording; }
 
 static void dm_play_work_handler(struct k_work *work);
 static K_WORK_DELAYABLE_DEFINE(dm_play_work, dm_play_work_handler);

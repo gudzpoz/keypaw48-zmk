@@ -38,3 +38,18 @@ config ZMK_DYNAMIC_MACRO_TAP_DELAY_MS
         not recorded, so this value alone controls playback speed.
 
 endif # ZMK_BEHAVIOR_DYNAMIC_MACRO
+
+# Deliberately NOT gated on ZMK_BEHAVIOR_DYNAMIC_MACRO or on the split central
+# role: the shield's shared kp-rgb.dtsi references this indicator from &kprgb on
+# BOTH halves, so the device must exist and link everywhere. On the peripheral
+# the getter is compiled out and the renderer stays dark.
+config ZMK_RGB_INDICATOR_DYNAMIC_MACRO
+    bool
+    default y
+    depends on KEYPAW_RGB_MATRIX
+    depends on DT_HAS_KEYPAW_RGB_INDICATOR_DYNAMIC_MACRO_ENABLED
+    help
+        Dynamic macro recording indicator. Enabled by the presence of a
+        keypaw,rgb-indicator-dynamic-macro node. Lights its targeted LEDs while
+        &dm is recording. Only truthful on the split central, where the recorder
+        runs.
