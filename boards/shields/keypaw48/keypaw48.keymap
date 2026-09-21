@@ -22,11 +22,11 @@
 #define MOD 0
 #define COL 1
 #define QWE 2
-#define FN1 3
-#define FN2 4
-#define NUM 5
-#define PAD 6
-#define ARR 7
+#define NUM 3
+#define PAD 4
+#define ARR 5
+#define FN1 6
+#define FN2 7
 
 / {
     behaviors {
@@ -67,6 +67,15 @@
         layers = <COL>;
     };
 
+    combos {
+        compatible = "zmk,combos";
+        combo_esc_left {
+            timeout-ms = <40>;
+            key-positions = <15 16>; // home row
+            bindings = <&kp ESC>;
+        };
+    };
+
     // Define a default keymap here.
     // See https://zmk.dev/docs/development/hardware-integration/new-shield#default-keymap.
     keymap {
@@ -74,17 +83,17 @@
 
         base { // #0: basic modifiers
             bindings = <
-            &kp GRAVE &trans &trans &trans &trans &trans    &trans &trans &trans    &trans  &trans   &kp BSPC
-            &kp TAB   &trans &trans &trans &trans &trans    &trans &trans &trans    &trans  &trans   &kp SQT
+            &kp TAB   &trans &trans &trans &trans &trans    &trans &trans &trans    &trans  &trans   &kp LBKT
+            &kp ENTER &trans &trans &trans &trans &trans    &trans &trans &trans    &trans  &trans   &kp SQT
             &kp LALT  &trans &trans &trans &trans &trans    &trans &trans &kp COMMA &kp DOT &kp FSLH &kp BSLH
 
-            &kp LCTRL TT(FN1) TT2(NUM, PAD) &kp ESC &mo FN2 &kp LSHFT
+            &kp LCTRL TT(FN1) TT2(NUM, PAD) &kp BSPC &lt FN2 CAPS &mt LSHFT SPACE
 
-            &kp SPACE &kp LGUI TT(FN1) &mkp LCLK &mkp RCLK &kp ENTER
+            &kp SPACE &kp LGUI &lt NUM ENTER &mkp LCLK &mkp RCLK TT(FN1)
             >;
         };
         colemak_dh_layer { // #1
-            display-name = "Colemak";
+            display-name = "COL";
             bindings = <
             &trans &kp Q &kp W &kp F &kp P &kp B    &kp J &kp L &kp U  &kp Y  &kp SEMI &trans
             &trans &kp A &kp R &kp S &kp T &kp G    &kp M &kp N &kp E  &kp I  &kp O    &trans
@@ -94,7 +103,7 @@
             >;
         };
         qwerty_layer { // #2
-            display-name = "Qwerty";
+            display-name = "QWE";
             bindings = <
             &trans &kp Q &kp W &kp E &kp R &kp T    &kp Y &kp U &kp I  &kp O  &kp P    &trans
             &trans &kp A &kp S &kp D &kp F &kp G    &kp H &kp J &kp K  &kp L  &kp SEMI &trans
@@ -104,28 +113,7 @@
             >;
         };
 
-        fn1_layer { // #3: Extra keys & layer switches
-            display-name = "Fn_1";
-
-            bindings = <
-            &to COL &to QWE &kp PG_UP &kp UP   &kp PG_DN &kp HOME    &trans &kp UNDER &kp PLUS  &kp LBRC &kp RBRC &kp DEL
-            &trans  &trans  &kp LEFT  &kp DOWN &kp RIGHT &kp END     &trans &kp MINUS &kp EQUAL &kp LBKT &kp RBKT &kp INS
-            &trans  &trans  &trans &trans &trans   &trans    &trans &trans &trans &trans &trans &trans
-            &trans  &trans  &trans &trans &tog ARR &trans    &trans &trans &trans &trans &trans &trans
-            >;
-        };
-
-        fn2_layer { // #4: Keyboard & media controls
-            display-name = "Fn_2";
-            bindings = <
-            &trans &trans &trans         &bri_both &trans &trans            BT(0) BT(1) BT(2) BT(3) BT(4) &bt BT_CLR
-            &trans &trans &kprgb RGB_TOG &brd_both &kprgb RGB_EFF &trans    DM(0) DM(1) DM(2) DM(3) DM(4) &dm DM_REC
-            &bootloader       &trans &trans &trans &trans &trans    &trans &trans &trans &trans &trans &bootloader
-            &ext_power EP_TOG &trans &trans &trans &trans &trans    &trans &trans &trans &trans &trans &out OUT_TOG
-            >;
-        };
-
-        num_layer { // #5: Numbers on the home row
+        num_layer { // #3: Numbers on the home row
             display-name = "Num";
             bindings = <
             &trans &kp F1 &kp F2 &kp F3 &kp F4 &kp F5    &kp F6 &kp F7 &kp F8 &kp F9 &kp F10 &kp F11
@@ -135,7 +123,7 @@
             &trans &trans &trans &trans &trans &trans    &trans &trans &trans &trans &trans  &trans
             >;
         };
-        pad_layer { // #6: Keypad
+        pad_layer { // #4: Keypad
             display-name = "Pad";
             bindings = <
             &trans &kp KP_SLASH &kp KP_N7 &kp KP_N8 &kp KP_N9 &kp KP_MINUS       &kp KP_MINUS    &kp KP_N7 &kp KP_N8 &kp KP_N9 &kp KP_SLASH &trans
@@ -146,7 +134,7 @@
             >;
         };
 
-        arrow_layer { // #7: Arrow layer
+        arrow_layer { // #5: Arrow layer
             display-name = "Arrow";
             bindings = <
             &trans &trans &trans &trans &trans &trans    &trans &trans &trans &trans &trans &trans
@@ -154,6 +142,27 @@
             &trans &trans &trans &trans &trans &trans    &trans &trans &trans &trans &trans &trans
             &trans &trans &kp LEFT &kp UP &kp RIGHT &kp DOWN
             &trans &trans &trans &trans &trans &trans
+            >;
+        };
+
+        fn1_layer { // #6: Extra keys & layer switches
+            display-name = "Fn1";
+
+            bindings = <
+            &to COL  &to QWE &kp PG_UP  &kp UP    &kp PG_DN &kp HOME     &kp TILDE &trans    &trans    &trans    &trans   &kp RBKT
+            &kp CAPS &kp INS &kp LEFT   &kp DOWN  &kp RIGHT &kp END      &kp GRAVE &kp MINUS &kp UNDER &kp EQUAL &kp PLUS &kp RBRC
+            &trans   &trans  &kp HOME   &kp K_APP &kp END   &trans       &trans    &trans   &trans    &trans &trans &trans
+            &trans   &trans  &kp KP_NUM &kp DEL   &tog ARR  &kp LSHFT    &kp RSHFT &kp RALT &kp RCTRL &trans &trans &trans
+            >;
+        };
+
+        fn2_layer { // #7: Keyboard & media controls
+            display-name = "Fn2";
+            bindings = <
+            &trans &trans &trans         &bri_both &trans &trans            BT(0) BT(1) BT(2) BT(3) BT(4) &bt BT_CLR
+            &trans &trans &kprgb RGB_TOG &brd_both &kprgb RGB_EFF &trans    DM(0) DM(1) DM(2) DM(3) DM(4) &dm DM_REC
+            &bootloader       &trans &trans &trans &trans &trans    &trans &trans &trans &trans &trans &bootloader
+            &ext_power EP_TOG &trans &trans &trans &trans &trans    &trans &trans &trans &trans &trans &out OUT_TOG
             >;
         };
     };
