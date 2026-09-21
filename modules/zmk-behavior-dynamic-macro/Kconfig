@@ -1,0 +1,40 @@
+# Copyright (c) 2026 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+config ZMK_BEHAVIOR_DYNAMIC_MACRO
+    bool "Dynamic macro behavior (runtime RAM-only recorder)"
+    depends on DT_HAS_ZMK_BEHAVIOR_DYNAMIC_MACRO_ENABLED
+    # The keymap's devicetree nodes are merged into BOTH halves of the split, so
+    # the DT_HAS_ gate above is true on the peripheral too. Only the central half
+    # ever dispatches keymap bindings or raises keycode events, so compiling this
+    # out on the peripheral avoids allocating the slot arrays there for nothing.
+    default y if !ZMK_SPLIT || ZMK_SPLIT_ROLE_CENTRAL
+    help
+        Behavior (&dm) to record and replay keystrokes at runtime. Slots live in
+        RAM only, so recordings are lost on reboot.
+
+if ZMK_BEHAVIOR_DYNAMIC_MACRO
+
+config ZMK_DYNAMIC_MACRO_SLOTS
+    int "Number of dynamic macro slots"
+    default 8
+    range 1 16
+    help
+        How many recorded macros can be held at once (0 .. SLOTS-1).
+
+config ZMK_DYNAMIC_MACRO_MAX_EVENTS
+    int "Maximum total keycode events shared by macro slots"
+    default 512
+    help
+        A tapped key stores two events (press + release), so 64 events is
+        roughly 32 key taps. Recording drops further input once full.
+
+config ZMK_DYNAMIC_MACRO_TAP_DELAY_MS
+    int "Delay between replayed dynamic macro events (ms)"
+    default 20
+    range 1 1000
+    help
+        Fixed pause inserted after each replayed event. Inter-event timing is
+        not recorded, so this value alone controls playback speed.
+
+endif # ZMK_BEHAVIOR_DYNAMIC_MACRO
