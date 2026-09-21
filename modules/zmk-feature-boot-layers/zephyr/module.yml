@@ -1,0 +1,6 @@
+name: zmk-feature-boot-layers
+build:
+  cmake: .
+  kconfig: Kconfig
+  settings:
+    dts_root: .

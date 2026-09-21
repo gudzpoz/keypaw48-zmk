@@ -1,0 +1,20 @@
+config KEYPAW_BOOT_LAYERS
+    bool "Boot layer activator"
+    depends on DT_HAS_KEYPAW_BOOT_LAYERS_ENABLED
+    default y if !ZMK_SPLIT || ZMK_SPLIT_ROLE_CENTRAL
+    help
+      Activate a configured set of keymap layers once at boot, so the layer
+      status widget shows the intended layout name from power-on. Central-only:
+      keymap layer state does not exist on a split peripheral, and the layer
+      widget is central-only anyway.
+
+if KEYPAW_BOOT_LAYERS
+
+config KEYPAW_BOOT_LAYERS_INIT_PRIORITY
+    int "Boot layer activator init priority (APPLICATION)"
+    default 91
+    help
+      Must run after keymap_init (APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY,
+      default 90). Keep it > 90.
+
+endif

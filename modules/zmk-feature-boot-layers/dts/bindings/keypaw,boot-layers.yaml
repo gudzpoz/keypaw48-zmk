@@ -1,0 +1,12 @@
+description: Layers to activate once at boot
+
+compatible: "keypaw,boot-layers"
+
+properties:
+  layers:
+    type: array
+    required: true
+    description: |
+      Keymap layer IDs to activate once at boot. IDs, not indices, matching the
+      `layer` property of keypaw,rgb-trigger-layer / indicator-layer. Entries >=
+      ZMK_KEYMAP_LAYERS_LEN are logged and skipped.
