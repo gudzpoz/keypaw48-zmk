@@ -7,7 +7,13 @@
  * The FT6x36 family stores touch point 1 at registers 0x03..0x06 and touch
  * point 2 at 0x09..0x0C. Each point occupies XH, XL, YH, YL (4 bytes of usable
  * coordinate data); the weight/misc bytes between them are reserved on this
- * part.
+ * part. Both points are read: point 1 drives scrolling, and the pair drives the
+ * firmware gesture classifier (see ft6236.c).
+ *
+ * GEST_ID (0x01) is deliberately absent: this panel answers 0x00 there for
+ * every touch, so the on-chip gesture engine is unusable. The gesture ids the
+ * classifier emits live in dt-bindings/zmk/ft6236.h, because devicetree needs
+ * those values to match them against behaviours.
  */
 
 #ifndef ZMK_DRIVER_FT6236_REGS_H_
@@ -19,8 +25,6 @@
 
 /* 0x00 DEVICE_MODE */
 #define FT6236_REG_DEVICE_MODE 0x00U
-/* 0x01 GEST_ID (on-chip gesture result; unused in 2-point mode) */
-#define FT6236_REG_GEST_ID 0x01U
 /* 0x02 TD_STATUS: number of active touch points */
 #define FT6236_REG_TD_STATUS 0x02U
 /* 0x03 TOUCH1_XH (start of point 1 coordinate block) */
@@ -54,12 +58,6 @@
 #define FT6236_EVENT_LIFT_UP 0x01U
 #define FT6236_EVENT_CONTACT 0x02U
 #define FT6236_EVENT_NONE 0x03U
-
-/* REG_Pn_YH: touch id in bits [7:4]. */
-#define FT6236_TOUCH_ID_POS 4U
-#define FT6236_TOUCH_ID_MSK 0x0FU
-
-#define FT6236_TOUCH_ID_INVALID 0x0FU
 
 /* REG_Pn_XH / REG_Pn_YH: high byte of the 12-bit coordinate. */
 #define FT6236_POSITION_H_MSK 0x0FU

@@ -8,11 +8,23 @@
  *
  * FT6236 / FT6x36 capacitive touch panel driver.
  *
- * Models the upstream input_ft5336.c but reports BOTH touch points as
- * Zephyr multitouch slots (INPUT_ABS_MT_SLOT). The driver scales the
- * raw panel coordinates into the PTP logical coordinate space and emits
- * rate-throttled frames; the central half turns these events into
- * Windows Precision Touchpad HID reports.
+ * Models the upstream input_ft5336.c for coordinates: only the first contact is
+ * reported, as a plain single-touch frame (INPUT_ABS_X / INPUT_ABS_Y /
+ * INPUT_BTN_TOUCH) in **raw panel pixels**. There is no logical coordinate space
+ * to keep in sync, so the central half's scroll parameters are plain pixels per
+ * wheel notch. A second finger cancels that frame rather than adding a contact,
+ * so a pinch is never mistaken for a scroll drag by the central half.
+ *
+ * Gestures are classified here in firmware, from the contact geometry, and
+ * reported as one INPUT_EV_KEY per gesture carrying an FT6x36 gesture id as the
+ * event code. Those codes cross the split link as ordinary key events and are
+ * mapped to ZMK behaviours on the central half, so gestures do not depend on
+ * multitouch forwarding at all.
+ *
+ * The controller's own GEST_ID register is deliberately not read: this panel
+ * (FT6x36U) reports 0x00 there for every touch, so its gesture engine is
+ * unusable. Reading both contacts is all that is needed to classify a swipe or
+ * a pinch, and unlike the register it is testable.
  */
 
 #define DT_DRV_COMPAT focaltech_ft6236
@@ -26,31 +38,43 @@
 #include <zephyr/sys/util.h>
 
 #include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(ft6236, CONFIG_INPUT_LOG_LEVEL);
+LOG_MODULE_REGISTER(ft6236, CONFIG_FT6236_LOG_LEVEL);
+
+#include <dt-bindings/zmk/ft6236.h>
 
 #include "ft6236_regs.h"
 
-/* Throttled frame: cap contacts at the configured maximum. */
-#define FT6236_MAX_POINTS CONFIG_FT6236_MAX_TOUCH_POINTS
+/* Contacts the panel can report. Both are read (the second only to classify a
+ * pinch); only the first is ever forwarded as a coordinate frame. */
+#define FT6236_MAX_POINTS 2
 
-/* Frame events: (slot, X, Y, tip switch) per current contact, plus a
- * synthesized (slot, tip switch = 0) release pair per contact that
- * disappeared since the last emitted frame. */
-#define FT6236_MAX_FRAME_EVTS (FT6236_MAX_POINTS * 4 + FT6236_MAX_POINTS * 2)
-
-/* A single (type, code, value) triple in a multitouch frame. */
-struct ft6236_frame_evt {
-  uint8_t type;
-  uint16_t code;
-  int32_t value;
-};
-
-/* One decoded contact. */
-struct ft6236_point {
-  uint8_t id; /* hardware touch id (or point index if invalid) */
-  uint16_t x; /* scaled to 0..FT6236_TOUCHPAD logical max */
+/** One decoded contact, in raw panel units. */
+struct ft6236_contact {
+  uint16_t x;
   uint16_t y;
   bool touch; /* tip switch / pressed */
+};
+
+/* Gesture classifier state. A session spans a single touch: it opens when the
+ * panel first reports a contact and closes when every contact is lifted. Each
+ * classification is reported at most once per session, which is what makes a
+ * gesture behave like a tap rather than a held key. */
+struct ft6236_gesture_session {
+  bool active;
+  /** Contacts reported by the previous read. */
+  uint8_t last_points;
+  /** Time the session opened (ms uptime), for the swipe timeout. */
+  uint32_t start_ms;
+  /** First contact position when the swipe was last (re)baselined. */
+  uint16_t start_x;
+  uint16_t start_y;
+  /** A Move has already been reported for this session. */
+  bool swipe_reported;
+  /** A Zoom has already been reported for this session. */
+  bool zoom_reported;
+  /** Squared contact separation when the second finger landed. */
+  bool have_separation;
+  int32_t start_separation2;
 };
 
 /** FT6236 configuration (DT). */
@@ -61,6 +85,10 @@ struct ft6236_config {
   struct gpio_dt_spec reset_gpio;
   /** Interrupt GPIO information. */
   struct gpio_dt_spec int_gpio;
+  /** Gesture classifier tunables, all in raw panel units / ms. */
+  uint16_t gesture_swipe_distance;
+  uint32_t gesture_swipe_timeout_ms;
+  uint16_t gesture_pinch_distance;
 };
 
 /** FT6236 data. */
@@ -71,9 +99,10 @@ struct ft6236_data {
   struct k_work work;
   /** Interrupt GPIO callback. */
   struct gpio_callback int_gpio_cb;
-  /** Last emitted contact state, used to detect changes. */
-  struct ft6236_point last[FT6236_MAX_POINTS];
-  uint8_t last_count;
+  /** Last emitted contact, used to detect changes. */
+  struct ft6236_contact last;
+  /** Gesture classifier state. */
+  struct ft6236_gesture_session gesture;
   /** Timestamp (ms) of the last emitted frame, for throttle. */
   uint32_t last_emit_ms;
   /** Set once the chip has been identified (see ft6236_identify()). */
@@ -101,37 +130,9 @@ static void ft6236_identify(const struct device *dev) {
   }
 }
 
-/* Scale a raw panel coordinate to the PTP logical space, applying
- * inverted / swapped orientation from the common config. */
-static void ft6236_orient_and_scale(const struct input_touchscreen_common_config *cfg,
-                                    uint16_t raw_x, uint16_t raw_y,
-                                    uint16_t *out_x, uint16_t *out_y) {
-  uint32_t lw = cfg->screen_width ? cfg->screen_width : 1;
-  uint32_t lh = cfg->screen_height ? cfg->screen_height : 1;
-  uint32_t logical = CONFIG_FT6236_TP_LOGICAL_MAX;
-
-  uint32_t sx = (uint32_t)raw_x * logical / lw;
-  uint32_t sy = (uint32_t)raw_y * logical / lh;
-
-  if (cfg->inverted_x) {
-    sx = logical - sx;
-  }
-  if (cfg->inverted_y) {
-    sy = logical - sy;
-  }
-
-  if (cfg->swapped_x_y) {
-    *out_x = (uint16_t)sy;
-    *out_y = (uint16_t)sx;
-  } else {
-    *out_x = (uint16_t)sx;
-    *out_y = (uint16_t)sy;
-  }
-}
-
-/* Read and decode one point starting at byte register `xh_reg`. */
-static int ft6236_read_point(const struct i2c_dt_spec *bus, uint8_t xh_reg,
-                             uint8_t point_index, struct ft6236_point *pt) {
+/* Read one point starting at byte register `xh_reg`. */
+static int ft6236_read_contact(const struct i2c_dt_spec *bus, uint8_t xh_reg,
+                               struct ft6236_contact *c) {
   uint8_t coords[4U];
   int r = i2c_burst_read_dt(bus, xh_reg, coords, sizeof(coords));
   if (r < 0) {
@@ -139,32 +140,184 @@ static int ft6236_read_point(const struct i2c_dt_spec *bus, uint8_t xh_reg,
   }
 
   uint8_t event = FIELD_GET(FT6236_EVENT_MSK, coords[0] >> FT6236_EVENT_POS);
-  uint8_t touch_id = FIELD_GET(FT6236_TOUCH_ID_MSK, coords[2] >> FT6236_TOUCH_ID_POS);
-  uint16_t raw_x = ((coords[0] & FT6236_POSITION_H_MSK) << 8U) | coords[1];
-  uint16_t raw_y = ((coords[2] & FT6236_POSITION_H_MSK) << 8U) | coords[3];
 
-  pt->id = (touch_id != FT6236_TOUCH_ID_INVALID) ? touch_id : point_index;
+  c->x = ((coords[0] & FT6236_POSITION_H_MSK) << 8U) | coords[1];
+  c->y = ((coords[2] & FT6236_POSITION_H_MSK) << 8U) | coords[3];
   /* tip switch: pressed unless the event says lift-up/none */
-  pt->touch = (event != FT6236_EVENT_LIFT_UP) && (event != FT6236_EVENT_NONE);
-  /* x/y scaled later in the caller once we know the config */
-  pt->x = raw_x;
-  pt->y = raw_y;
+  c->touch = (event != FT6236_EVENT_LIFT_UP) && (event != FT6236_EVENT_NONE);
+
   return 0;
 }
 
-static bool ft6236_state_changed(const struct ft6236_data *data,
-                                 const struct ft6236_point *cur, uint8_t count) {
-  if (count != data->last_count) {
-    return true;
+/* Report a one-shot gesture: press immediately followed by release, so it reads
+ * as a tap rather than a held key. sync is deliberately clear on both events —
+ * an unmapped code must not make the central listener flush a mouse report. */
+static void ft6236_report_gesture(const struct device *dev, uint8_t gesture) {
+  LOG_DBG("gesture 0x%02x", gesture);
+  input_report(dev, INPUT_EV_KEY, gesture, 1, false, K_FOREVER);
+  input_report(dev, INPUT_EV_KEY, gesture, 0, false, K_FOREVER);
+}
+
+/* Classify the current contact geometry into a gesture, or
+ * FT6236_GESTURE_NONE. One contact is a swipe (if it is quick enough); two
+ * contacts are a pinch. */
+static uint8_t ft6236_classify_gesture(const struct device *dev,
+                                       const struct ft6236_contact *c0,
+                                       const struct ft6236_contact *c1,
+                                       uint8_t points) {
+  const struct ft6236_config *config = dev->config;
+  struct ft6236_data *data = dev->data;
+  struct ft6236_gesture_session *s = &data->gesture;
+
+  if (points == 0) {
+    s->active = false;
+    s->last_points = 0;
+    return FT6236_GESTURE_NONE;
   }
-  for (uint8_t i = 0; i < count; i++) {
-    const struct ft6236_point *l = &data->last[i];
-    if (cur[i].id != l->id || cur[i].touch != l->touch ||
-        cur[i].x != l->x || cur[i].y != l->y) {
-      return true;
+
+  if (!s->active) {
+    s->active = true;
+    s->last_points = points;
+    s->start_ms = k_uptime_get_32();
+    s->start_x = c0->x;
+    s->start_y = c0->y;
+    s->swipe_reported = false;
+    s->zoom_reported = false;
+    s->have_separation = false;
+  } else if (points == 1 && s->last_points >= 2) {
+    /* The pinch ended: a swipe starts from wherever the surviving finger is
+     * now, not from wherever the pinch happened to begin. */
+    s->start_ms = k_uptime_get_32();
+    s->start_x = c0->x;
+    s->start_y = c0->y;
+  }
+
+  s->last_points = points;
+
+  if (points >= 2) {
+    if (!c0->touch || !c1->touch) {
+      /* One of the two is lifting, so its coordinates are not worth trusting;
+       * wait for a clean two-finger frame before measuring the separation. */
+      return FT6236_GESTURE_NONE;
     }
+
+    /* Pinch. Contact separation is independent of the panel's orientation. */
+    int32_t dx = (int32_t)c1->x - (int32_t)c0->x;
+    int32_t dy = (int32_t)c1->y - (int32_t)c0->y;
+    int32_t separation2 = dx * dx + dy * dy;
+    int32_t threshold = config->gesture_pinch_distance;
+
+    if (!s->have_separation) {
+      /* Reference the separation as it was when the second finger landed. */
+      s->have_separation = true;
+      s->start_separation2 = separation2;
+      return FT6236_GESTURE_NONE;
+    }
+
+    if (s->zoom_reported) {
+      return FT6236_GESTURE_NONE;
+    }
+
+    int32_t change = separation2 - s->start_separation2;
+
+    if (change >= threshold * threshold) {
+      s->zoom_reported = true;
+      return FT6236_GESTURE_ZOOM_IN;
+    }
+    if (change <= -(threshold * threshold)) {
+      s->zoom_reported = true;
+      return FT6236_GESTURE_ZOOM_OUT;
+    }
+
+    return FT6236_GESTURE_NONE;
   }
-  return false;
+
+  /* Single contact: a swipe, but only a quick one. Anything slower is a scroll
+   * drag, which the coordinates already drive. */
+  if (s->swipe_reported) {
+    return FT6236_GESTURE_NONE;
+  }
+
+  if (config->gesture_swipe_timeout_ms != 0 &&
+      (k_uptime_get_32() - s->start_ms) > config->gesture_swipe_timeout_ms) {
+    s->swipe_reported = true;
+    return FT6236_GESTURE_NONE;
+  }
+
+  int32_t dx = (int32_t)c0->x - (int32_t)s->start_x;
+  int32_t dy = (int32_t)c0->y - (int32_t)s->start_y;
+
+  /* The classifier works in panel units, so fold in the orientation flags to
+   * keep "up" meaning up in the keyboard's frame. */
+  if (config->common.inverted_x) {
+    dx = -dx;
+  }
+  if (config->common.inverted_y) {
+    dy = -dy;
+  }
+  if (config->common.swapped_x_y) {
+    int32_t tmp = dx;
+    dx = dy;
+    dy = tmp;
+  }
+
+  int32_t adx = (dx < 0) ? -dx : dx;
+  int32_t ady = (dy < 0) ? -dy : dy;
+  int32_t threshold = config->gesture_swipe_distance;
+  uint8_t gesture = FT6236_GESTURE_NONE;
+
+  /* The dominant axis wins, so a diagonal drag does not report both. */
+  if (adx >= threshold && adx >= ady) {
+    gesture = (dx > 0) ? FT6236_GESTURE_RIGHT : FT6236_GESTURE_LEFT;
+  } else if (ady >= threshold) {
+    gesture = (dy > 0) ? FT6236_GESTURE_DOWN : FT6236_GESTURE_UP;
+  }
+
+  if (gesture != FT6236_GESTURE_NONE) {
+    s->swipe_reported = true;
+  }
+
+  return gesture;
+}
+
+/* Report the scroll coordinate frame: the contact's position while `touch`, a
+ * release otherwise. */
+static void ft6236_emit_frame(const struct device *dev, const struct ft6236_contact *c,
+                              bool touch) {
+  struct ft6236_data *data = dev->data;
+
+  /* Nothing to say if neither the contact state nor the position moved. */
+  bool edge = touch != data->last.touch;
+  bool moved = touch && (c->x != data->last.x || c->y != data->last.y);
+
+  if (!edge && !moved) {
+    return;
+  }
+
+  /* Throttle movement frames, but never press/lift transitions: after a
+   * lift the chip goes idle and stops interrupting, so a throttled
+   * release frame would be lost forever, stranding the contact as
+   * pressed on the receiving side. */
+  uint32_t now = k_uptime_get_32();
+  if (!edge && (now - data->last_emit_ms) < (uint32_t)CONFIG_FT6236_REPORT_PERIOD_MS) {
+    return;
+  }
+  data->last_emit_ms = now;
+
+  if (touch) {
+    LOG_DBG("contact (%u, %u) px", c->x, c->y);
+    /* Raw panel pixels; the helper applies inverted-x / inverted-y /
+     * swapped-x-y from the common config. */
+    input_touchscreen_report_pos(dev, c->x, c->y, K_FOREVER);
+    /* Last event of the frame carries sync. */
+    input_report(dev, INPUT_EV_KEY, INPUT_BTN_TOUCH, 1, true, K_FOREVER);
+  } else {
+    LOG_DBG("lift");
+    input_report(dev, INPUT_EV_KEY, INPUT_BTN_TOUCH, 0, true, K_FOREVER);
+  }
+
+  data->last = *c;
+  data->last.touch = touch;
 }
 
 static int ft6236_process(const struct device *dev) {
@@ -172,8 +325,9 @@ static int ft6236_process(const struct device *dev) {
   struct ft6236_data *data = dev->data;
 
   int r;
-  uint8_t points;
-  struct ft6236_point cur[FT6236_MAX_POINTS] = {0};
+  uint8_t points = 0;
+  struct ft6236_contact c0 = {.x = 0, .y = 0, .touch = false};
+  struct ft6236_contact c1 = {.x = 0, .y = 0, .touch = false};
 
   if (!data->identified) {
     data->identified = true;
@@ -190,77 +344,30 @@ static int ft6236_process(const struct device *dev) {
     points = FT6236_MAX_POINTS;
   }
 
-  for (uint8_t i = 0; i < points; i++) {
-    uint8_t xh_reg = (i == 0) ? FT6236_REG_P1_XH : FT6236_REG_P2_XH;
-    r = ft6236_read_point(&config->bus, xh_reg, i, &cur[i]);
+  if (points >= 1) {
+    r = ft6236_read_contact(&config->bus, FT6236_REG_P1_XH, &c0);
     if (r < 0) {
       return r;
     }
-    /* Orient + scale raw into logical space now that we have the config. */
-    uint16_t ox, oy;
-    ft6236_orient_and_scale(&config->common, cur[i].x, cur[i].y, &ox, &oy);
-    cur[i].x = ox;
-    cur[i].y = oy;
   }
-
-  /* Only emit when something changed since the last read. */
-  if (!ft6236_state_changed(data, cur, points)) {
-    return 0;
-  }
-
-  /* Throttle movement frames, but never press/lift transitions: after a
-   * lift the chip goes idle and stops interrupting, so a throttled
-   * release frame would be lost forever, stranding the contact as
-   * pressed on the receiving side. */
-  bool edge = points != data->last_count;
-  for (uint8_t i = 0; i < points && i < data->last_count; i++) {
-    edge = edge || cur[i].touch != data->last[i].touch;
-  }
-
-  uint32_t now = k_uptime_get_32();
-  if (!edge && (now - data->last_emit_ms) < (uint32_t)CONFIG_FT6236_REPORT_PERIOD_MS) {
-    return 0;
-  }
-  data->last_emit_ms = now;
-
-  for (uint8_t i = 0; i < points; i++) {
-    LOG_DBG("point %u: id %u (%u, %u) touch %d", i, cur[i].id, cur[i].x, cur[i].y,
-            cur[i].touch);
-  }
-
-  /* Build the frame as (type, code, value) triples; last carries sync. */
-  struct ft6236_frame_evt evt[FT6236_MAX_FRAME_EVTS];
-  uint8_t n = 0;
-
-  for (uint8_t i = 0; i < points; i++) {
-    evt[n++] = (struct ft6236_frame_evt){INPUT_EV_ABS, INPUT_ABS_MT_SLOT, cur[i].id};
-    evt[n++] = (struct ft6236_frame_evt){INPUT_EV_ABS, INPUT_ABS_X, cur[i].x};
-    evt[n++] = (struct ft6236_frame_evt){INPUT_EV_ABS, INPUT_ABS_Y, cur[i].y};
-    evt[n++] = (struct ft6236_frame_evt){INPUT_EV_KEY, INPUT_BTN_TOUCH, cur[i].touch ? 1 : 0};
-  }
-  /* Lifted contacts: synthesize releases (tip switch 0) for slots that
-   * disappeared since the last frame. */
-  for (uint8_t i = 0; i < data->last_count; i++) {
-    bool still_present = false;
-    for (uint8_t j = 0; j < points; j++) {
-      if (data->last[i].id == cur[j].id) {
-        still_present = true;
-        break;
-      }
-    }
-    if (!still_present) {
-      evt[n++] = (struct ft6236_frame_evt){INPUT_EV_ABS, INPUT_ABS_MT_SLOT, data->last[i].id};
-      evt[n++] = (struct ft6236_frame_evt){INPUT_EV_KEY, INPUT_BTN_TOUCH, 0};
+  if (points >= 2) {
+    r = ft6236_read_contact(&config->bus, FT6236_REG_P2_XH, &c1);
+    if (r < 0) {
+      return r;
     }
   }
 
-  for (uint8_t i = 0; i < n; i++) {
-    bool sync = (i == n - 1);
-    input_report(dev, evt[i].type, evt[i].code, evt[i].value, sync, K_FOREVER);
+  LOG_DBG("points %u, c0 (%u, %u) touch %d, c1 (%u, %u) touch %d", points, c0.x, c0.y,
+          c0.touch, c1.x, c1.y, c1.touch);
+
+  uint8_t gesture = ft6236_classify_gesture(dev, &c0, &c1, points);
+  if (gesture != FT6236_GESTURE_NONE) {
+    ft6236_report_gesture(dev, gesture);
   }
 
-  memcpy(data->last, cur, sizeof(cur));
-  data->last_count = points;
+  /* Only a lone contact drives scrolling: a second finger is a pinch, and
+   * reporting a lift keeps the pinch from being read as a scroll drag. */
+  ft6236_emit_frame(dev, &c0, points == 1 && c0.touch);
 
   return 0;
 }
@@ -315,7 +422,8 @@ static int ft6236_init(const struct device *dev) {
   }
 
   data->dev = dev;
-  data->last_count = 0;
+  data->last.touch = false;
+  data->gesture.active = false;
   data->last_emit_ms = 0;
 
   k_work_init(&data->work, ft6236_work_handler);
@@ -419,17 +527,21 @@ static int ft6236_pm_action(const struct device *dev,
 }
 #endif
 
-#define FT6236_INIT(index)                                              \
-  PM_DEVICE_DT_INST_DEFINE(index, ft6236_pm_action);                    \
-  static const struct ft6236_config ft6236_config_##index = {           \
-    .common = INPUT_TOUCH_DT_INST_COMMON_CONFIG_INIT(index),            \
-    .bus = I2C_DT_SPEC_INST_GET(index),                                 \
-    .reset_gpio = GPIO_DT_SPEC_INST_GET_OR(index, reset_gpios, {0}),    \
-    .int_gpio = GPIO_DT_SPEC_INST_GET(index, int_gpios),                \
-  };                                                                    \
-  static struct ft6236_data ft6236_data_##index;                        \
-  DEVICE_DT_INST_DEFINE(index, ft6236_init, PM_DEVICE_DT_INST_GET(index), \
-                        &ft6236_data_##index, &ft6236_config_##index,   \
+#define FT6236_INIT(index)                                                     \
+  PM_DEVICE_DT_INST_DEFINE(index, ft6236_pm_action);                           \
+  static const struct ft6236_config ft6236_config_##index = {                  \
+      .common = INPUT_TOUCH_DT_INST_COMMON_CONFIG_INIT(index),                 \
+      .bus = I2C_DT_SPEC_INST_GET(index),                                      \
+      .reset_gpio = GPIO_DT_SPEC_INST_GET_OR(index, reset_gpios, {0}),         \
+      .int_gpio = GPIO_DT_SPEC_INST_GET(index, int_gpios),                     \
+      .gesture_swipe_distance = DT_INST_PROP(index, gesture_swipe_distance),   \
+      .gesture_swipe_timeout_ms =                                              \
+          DT_INST_PROP(index, gesture_swipe_timeout_ms),                       \
+      .gesture_pinch_distance = DT_INST_PROP(index, gesture_pinch_distance),   \
+  };                                                                           \
+  static struct ft6236_data ft6236_data_##index;                               \
+  DEVICE_DT_INST_DEFINE(index, ft6236_init, PM_DEVICE_DT_INST_GET(index),      \
+                        &ft6236_data_##index, &ft6236_config_##index,          \
                         POST_KERNEL, CONFIG_INPUT_INIT_PRIORITY, NULL);
 
 DT_INST_FOREACH_STATUS_OKAY(FT6236_INIT)

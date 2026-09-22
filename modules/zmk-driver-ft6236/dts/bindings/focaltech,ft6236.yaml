@@ -19,3 +19,31 @@ properties:
     description: |
       Reset GPIO. Used to reset the controller during initialization, and
       to wake it from hibernation mode. Active low.
+
+  gesture-swipe-distance:
+    type: int
+    default: 25
+    description: |
+      Minimum travel of a single contact, in raw panel units (the same units as
+      screen-width / screen-height), before it counts as a Move gesture. The
+      FT6x36's own gesture engine defaults DISTANCE_UP_DOWN and
+      DISTANCE_LEFT_RIGHT to 25, which is a reasonable starting point.
+      Directions are reported in the keyboard's frame: inverted-x / inverted-y /
+      swapped-x-y are applied to the measured travel.
+
+  gesture-swipe-timeout-ms:
+    type: int
+    default: 500
+    description: |
+      Maximum time between a contact starting and covering
+      gesture-swipe-distance, for the movement to count as a swipe. Slower drags
+      are treated as scrolling and report no gesture. 0 disables the limit, which
+      makes any drag long enough to cross the threshold a swipe.
+
+  gesture-pinch-distance:
+    type: int
+    default: 25
+    description: |
+      Minimum change in the distance between two contacts, in raw panel units,
+      before it counts as Zoom In (fingers separating) or Zoom Out (fingers
+      closing).

@@ -44,20 +44,19 @@
         compatible = "zmk,input-listener";
         device = <&ft6236_split>;
 
-        /* Scroll divisors: param1 = X, param2 = Y, in logical units per
-         * wheel notch (0 -> 1). 48/36 ~= 5.5 notches per inch of travel on
-         * both axes for this panel; tune to taste. */
-        input-processors = <&ft6236_touchpad_proc 48 36>;
+        /* Scroll tuning: param1 = X, param2 = Y, in raw panel pixels per wheel
+         * notch (0 -> 1), lower is faster. This panel is ~195 px/inch, so 36 is
+         * ~5.4 notches per inch. The processor logs pixels vs notches per touch.
+         *
+         * Gesture dispatch comes first: it consumes the codes it maps and stops
+         * the chain, so the scroll processor never sees a gesture. */
+        input-processors = <&ft6236_gestures &ft6236_scroll 36 36>;
     };
 
-    /* PTP (Digitizer 0x0D) + scroll input processor for the FT6236. */
-    ft6236_touchpad_proc: ft6236_touchpad_proc {
-        compatible = "zmk,input-processor-ft6236-touchpad";
+    /* Single-finger scroll for the FT6236's single-touch frames. */
+    ft6236_scroll: ft6236_scroll {
+        compatible = "zmk,input-processor-ft6236-scroll";
         #input-processor-cells = <2>;
         scroll-natural;
-
-        /* Digitizer active area: 1.23 in x 1.63 in, in 1/100 inch. */
-        physical-width = <123>;
-        physical-height = <163>;
     };
 };
