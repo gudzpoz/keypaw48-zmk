@@ -10,7 +10,12 @@
     // Indicators are listed on each behavior in paint order. They remain
     // outside &kprgb because its children are the effect registry; this shared
     // list is referenced by the behavior below.
+    //
+    // The compatible makes this the engine's indicator registry: children are
+    // enumerated in declaration order and that index is the bit the central
+    // uses to push each indicator's on/off state to the peripheral.
     rgb_indicators: rgb_indicators {
+        compatible = "keypaw,rgb-indicators";
         // Placeholder target: point this at whatever key you bind Caps to. The
         // default keymap has no Caps binding, so this stays dark until then.
         caps: caps {
@@ -20,8 +25,11 @@
         };
 
         // Lights while &dm is recording. Keys have to be on the central half.
+        // The recorder exists only there, so the central evaluates and pushes
+        // the state instead of each half reading the getter.
         dm_rec: dm_rec {
             compatible = "keypaw,rgb-indicator-dynamic-macro";
+            central-authoritative;
             keys = <11 23 35>;
             color = <0xFF0000>;
         };

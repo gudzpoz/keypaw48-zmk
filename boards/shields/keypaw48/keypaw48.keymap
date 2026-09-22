@@ -182,9 +182,13 @@
 };
 
 &rgb_indicators {
-    // One node per layer that should show on its own LED.
+    // One node per layer that should show on its own LED. Layer state exists
+    // only on the central, so each node is central-authoritative: the central
+    // evaluates it and pushes the on/off state to the peripheral, whose LEDs in
+    // the `keys` list below then light up too.
     layer_fn1: layer_fn1 {
         compatible = "keypaw,rgb-indicator-layer";
+        central-authoritative;
         layer = <FN1>;
         keys = <
         2  3  4  5   7  8  9  10 11
@@ -194,6 +198,7 @@
     };
     layer_fn2: layer_fn2 {
         compatible = "keypaw,rgb-indicator-layer";
+        central-authoritative;
         layer = <FN2>;
         keys = <
         3 14 15 16
@@ -203,6 +208,7 @@
     };
     layer_num: layer_num {
         compatible = "keypaw,rgb-indicator-layer";
+        central-authoritative;
         layer = <NUM>;
         keys = <
         13 14 15 16 17 18 19 20 21 22
@@ -211,6 +217,7 @@
     };
     layer_pad: layer_pad {
         compatible = "keypaw,rgb-indicator-layer";
+        central-authoritative;
         layer = <PAD>;
         keys = <
         2  3  4   7  8  9
