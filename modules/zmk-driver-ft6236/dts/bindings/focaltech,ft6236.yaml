@@ -24,18 +24,19 @@ properties:
     type: int
     default: 25
     description: |
-      Minimum travel of a single contact, in raw panel units (the same units as
-      screen-width / screen-height), before it counts as a Move gesture. The
-      FT6x36's own gesture engine defaults DISTANCE_UP_DOWN and
-      DISTANCE_LEFT_RIGHT to 25, which is a reasonable starting point.
-      Directions are reported in the keyboard's frame: inverted-x / inverted-y /
-      swapped-x-y are applied to the measured travel.
+      Minimum travel, in raw panel units (the same units as screen-width /
+      screen-height), before movement counts as a swipe. For a one-finger swipe
+      it is the travel of the contact; for a two-finger swipe it is the travel of
+      the midpoint between the two contacts. The FT6x36's own gesture engine
+      defaults DISTANCE_UP_DOWN and DISTANCE_LEFT_RIGHT to 25, which is a
+      reasonable starting point. Directions are reported in the keyboard's frame:
+      inverted-x / inverted-y / swapped-x-y are applied to the measured travel.
 
   gesture-swipe-timeout-ms:
     type: int
     default: 500
     description: |
-      Maximum time between a contact starting and covering
+      Maximum time between a gesture starting and covering
       gesture-swipe-distance, for the movement to count as a swipe. Slower drags
       are treated as scrolling and report no gesture. 0 disables the limit, which
       makes any drag long enough to cross the threshold a swipe.
@@ -46,4 +47,6 @@ properties:
     description: |
       Minimum change in the distance between two contacts, in raw panel units,
       before it counts as Zoom In (fingers separating) or Zoom Out (fingers
-      closing).
+      closing). A pinch is only reported when the separation changed more than
+      the pair's midpoint moved, so a two-finger swipe that spreads the fingers
+      slightly still reads as a swipe.

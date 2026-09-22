@@ -33,7 +33,6 @@
     layers = <FN1>;
 };
 
-
 / {
     behaviors {
         jd_brt: jd_brt {
@@ -76,8 +75,16 @@
     ft6236_gestures: ft6236_gestures {
         compatible = "zmk,input-processor-behaviors";
         #input-processor-cells = <0>;
-        codes = <FT6236_GESTURE_ZOOM_IN  FT6236_GESTURE_ZOOM_OUT>;
-        bindings = <&kp LC(EQUAL)  &kp LC(MINUS)>;
+        codes = <
+        FT6236_GESTURE_ZOOM_IN          FT6236_GESTURE_ZOOM_OUT
+        FT6236_GESTURE_TWO_FINGER_UP    FT6236_GESTURE_TWO_FINGER_DOWN
+        FT6236_GESTURE_TWO_FINGER_LEFT  FT6236_GESTURE_TWO_FINGER_RIGHT
+        >;
+        bindings = <
+        &kp LC(EQUAL)  &kp LC(MINUS)
+        &kp C_VOL_UP   &kp C_VOL_DN
+        &kp C_PREV     &kp C_NEXT
+        >;
     };
 
     combos {
@@ -174,8 +181,8 @@
             bindings = <
             &trans &trans &trans         &bri_both &trans &trans            BT(0) BT(1) BT(2) BT(3) BT(4) &bt BT_CLR
             &trans &trans &kprgb RGB_TOG &brd_both &kprgb RGB_EFF &trans    DM(0) DM(1) DM(2) DM(3) DM(4) &dm DM_REC
-            &bootloader       &trans &trans &trans &trans &trans    &trans &trans &trans &trans &trans &bootloader
-            &ext_power EP_TOG &trans &trans &trans &trans &trans    &trans &trans &trans &trans &trans &out OUT_TOG
+            &bootloader       &trans     &trans &trans &trans &trans    &trans &trans &trans &trans &trans     &bootloader
+            &ext_power EP_TOG &sys_reset &trans &trans &trans &trans    &trans &trans &trans &trans &sys_reset &out OUT_TOG
             >;
         };
     };

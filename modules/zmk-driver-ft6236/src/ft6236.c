@@ -17,9 +17,11 @@
  *
  * Gestures are classified here in firmware, from the contact geometry, and
  * reported as one INPUT_EV_KEY per gesture carrying an FT6x36 gesture id as the
- * event code. Those codes cross the split link as ordinary key events and are
- * mapped to ZMK behaviours on the central half, so gestures do not depend on
- * multitouch forwarding at all.
+ * event code. One finger yields a swipe; two fingers yield a pinch or a swipe,
+ * told apart by whether the fingers moved relative to each other or together.
+ * Those codes cross the split link as ordinary key events and are mapped to ZMK
+ * behaviours on the central half, so gestures do not depend on multitouch
+ * forwarding at all.
  *
  * The controller's own GEST_ID register is deliberately not read: this panel
  * (FT6x36U) reports 0x00 there for every touch, so its gesture engine is
@@ -44,8 +46,8 @@ LOG_MODULE_REGISTER(ft6236, CONFIG_FT6236_LOG_LEVEL);
 
 #include "ft6236_regs.h"
 
-/* Contacts the panel can report. Both are read (the second only to classify a
- * pinch); only the first is ever forwarded as a coordinate frame. */
+/* Contacts the panel can report. Both are read (the second only to classify
+ * two-finger gestures); only the first is ever forwarded as a coordinate frame. */
 #define FT6236_MAX_POINTS 2
 
 /** One decoded contact, in raw panel units. */
@@ -56,25 +58,30 @@ struct ft6236_contact {
 };
 
 /* Gesture classifier state. A session spans a single touch: it opens when the
- * panel first reports a contact and closes when every contact is lifted. Each
- * classification is reported at most once per session, which is what makes a
- * gesture behave like a tap rather than a held key. */
+ * panel first reports a contact and closes when every contact is lifted. Within
+ * a session a one-finger swipe is reported once, and each time the second finger
+ * goes down the pair gets one gesture of its own (a pinch or a two-finger swipe).
+ * Reporting once is what makes a gesture behave like a tap rather than a held
+ * key. */
 struct ft6236_gesture_session {
   bool active;
   /** Contacts reported by the previous read. */
   uint8_t last_points;
-  /** Time the session opened (ms uptime), for the swipe timeout. */
+  /** Reference time (ms uptime) for the swipe timeout. */
   uint32_t start_ms;
-  /** First contact position when the swipe was last (re)baselined. */
+  /** First contact position when the one-finger swipe was last (re)baselined. */
   uint16_t start_x;
   uint16_t start_y;
-  /** A Move has already been reported for this session. */
+  /** A one-finger swipe has already been reported for this session. */
   bool swipe_reported;
-  /** A Zoom has already been reported for this session. */
-  bool zoom_reported;
-  /** Squared contact separation when the second finger landed. */
-  bool have_separation;
+  /* Two-finger state: measured from where the pair was once both contacts were
+   * cleanly down. */
+  bool have_pair;
   int32_t start_separation2;
+  int32_t start_mid_x;
+  int32_t start_mid_y;
+  /** A pinch or a two-finger swipe has already been reported for this pair. */
+  bool two_finger_reported;
 };
 
 /** FT6236 configuration (DT). */
@@ -158,9 +165,45 @@ static void ft6236_report_gesture(const struct device *dev, uint8_t gesture) {
   input_report(dev, INPUT_EV_KEY, gesture, 0, false, K_FOREVER);
 }
 
-/* Classify the current contact geometry into a gesture, or
- * FT6236_GESTURE_NONE. One contact is a swipe (if it is quick enough); two
- * contacts are a pinch. */
+/* Fold the panel's orientation into a measured delta, so gesture directions are
+ * reported in the keyboard's frame rather than the panel's. */
+static void ft6236_orient_delta(const struct input_touchscreen_common_config *cfg,
+                                int32_t *dx, int32_t *dy) {
+  if (cfg->inverted_x) {
+    *dx = -*dx;
+  }
+  if (cfg->inverted_y) {
+    *dy = -*dy;
+  }
+  if (cfg->swapped_x_y) {
+    int32_t tmp = *dx;
+    *dx = *dy;
+    *dy = tmp;
+  }
+}
+
+/* Turn a measured travel into a direction gesture, or FT6236_GESTURE_NONE when
+ * neither axis reached `threshold`. The caller passes the ids to use, so the
+ * same logic serves one-finger and two-finger swipes. The dominant axis wins, so
+ * a diagonal drag is not reported as two gestures. */
+static uint8_t ft6236_swipe_direction(int32_t dx, int32_t dy, int32_t threshold, uint8_t up,
+                                      uint8_t down, uint8_t left, uint8_t right) {
+  int32_t adx = (dx < 0) ? -dx : dx;
+  int32_t ady = (dy < 0) ? -dy : dy;
+
+  if (adx >= threshold && adx >= ady) {
+    return (dx > 0) ? right : left;
+  }
+  if (ady >= threshold) {
+    return (dy > 0) ? down : up;
+  }
+
+  return FT6236_GESTURE_NONE;
+}
+
+/* Classify the current contact geometry into a gesture, or FT6236_GESTURE_NONE.
+ * One contact is a swipe. Two contacts are a pinch or a swipe, decided below by
+ * whichever moved more. */
 static uint8_t ft6236_classify_gesture(const struct device *dev,
                                        const struct ft6236_contact *c0,
                                        const struct ft6236_contact *c1,
@@ -182,11 +225,16 @@ static uint8_t ft6236_classify_gesture(const struct device *dev,
     s->start_x = c0->x;
     s->start_y = c0->y;
     s->swipe_reported = false;
-    s->zoom_reported = false;
-    s->have_separation = false;
+    s->have_pair = false;
+    s->two_finger_reported = false;
+  } else if (points >= 2 && s->last_points == 1) {
+    /* The pair just formed, so it gets its own measurement reference and its own
+     * gesture, mirroring the 2 -> 1 case below. */
+    s->have_pair = false;
+    s->two_finger_reported = false;
   } else if (points == 1 && s->last_points >= 2) {
-    /* The pinch ended: a swipe starts from wherever the surviving finger is
-     * now, not from wherever the pinch happened to begin. */
+    /* The pair ended: a one-finger swipe starts from wherever the surviving
+     * finger is now, not from wherever the pair happened to begin. */
     s->start_ms = k_uptime_get_32();
     s->start_x = c0->x;
     s->start_y = c0->y;
@@ -197,39 +245,69 @@ static uint8_t ft6236_classify_gesture(const struct device *dev,
   if (points >= 2) {
     if (!c0->touch || !c1->touch) {
       /* One of the two is lifting, so its coordinates are not worth trusting;
-       * wait for a clean two-finger frame before measuring the separation. */
+       * wait for a clean two-finger frame before measuring anything. */
       return FT6236_GESTURE_NONE;
     }
 
-    /* Pinch. Contact separation is independent of the panel's orientation. */
+    if (s->two_finger_reported) {
+      return FT6236_GESTURE_NONE;
+    }
+
     int32_t dx = (int32_t)c1->x - (int32_t)c0->x;
     int32_t dy = (int32_t)c1->y - (int32_t)c0->y;
     int32_t separation2 = dx * dx + dy * dy;
-    int32_t threshold = config->gesture_pinch_distance;
+    int32_t mid_x = ((int32_t)c0->x + (int32_t)c1->x) / 2;
+    int32_t mid_y = ((int32_t)c0->y + (int32_t)c1->y) / 2;
 
-    if (!s->have_separation) {
-      /* Reference the separation as it was when the second finger landed. */
-      s->have_separation = true;
+    if (!s->have_pair) {
+      /* Reference the separation and the midpoint as they were once the pair was
+       * cleanly down; the swipe timeout is measured from here too. */
+      s->have_pair = true;
+      s->start_ms = k_uptime_get_32();
       s->start_separation2 = separation2;
+      s->start_mid_x = mid_x;
+      s->start_mid_y = mid_y;
       return FT6236_GESTURE_NONE;
     }
 
-    if (s->zoom_reported) {
+    int32_t spread = separation2 - s->start_separation2;
+    int32_t mid_dx = mid_x - s->start_mid_x;
+    int32_t mid_dy = mid_y - s->start_mid_y;
+    int32_t travel2 = mid_dx * mid_dx + mid_dy * mid_dy;
+    int32_t spread_abs = (spread < 0) ? -spread : spread;
+
+    int32_t pinch2 = (int32_t)config->gesture_pinch_distance * config->gesture_pinch_distance;
+    int32_t swipe2 = (int32_t)config->gesture_swipe_distance * config->gesture_swipe_distance;
+
+    /* `spread` (change in squared separation) and `travel2` (squared movement of
+     * the pair's midpoint) are both squared distances in panel units, so they
+     * compare directly. Judging by whichever grew more is what stops a two-finger
+     * swipe -- during which the fingers always drift a little apart -- from being
+     * read as a pinch, and vice versa. */
+    if (spread_abs >= pinch2 && spread_abs >= travel2) {
+      s->two_finger_reported = true;
+      return (spread > 0) ? FT6236_GESTURE_ZOOM_IN : FT6236_GESTURE_ZOOM_OUT;
+    }
+
+    if (travel2 < swipe2 || travel2 <= spread_abs) {
       return FT6236_GESTURE_NONE;
     }
 
-    int32_t change = separation2 - s->start_separation2;
-
-    if (change >= threshold * threshold) {
-      s->zoom_reported = true;
-      return FT6236_GESTURE_ZOOM_IN;
-    }
-    if (change <= -(threshold * threshold)) {
-      s->zoom_reported = true;
-      return FT6236_GESTURE_ZOOM_OUT;
+    if (config->gesture_swipe_timeout_ms != 0 &&
+        (k_uptime_get_32() - s->start_ms) > config->gesture_swipe_timeout_ms) {
+      s->two_finger_reported = true;
+      return FT6236_GESTURE_NONE;
     }
 
-    return FT6236_GESTURE_NONE;
+    ft6236_orient_delta(&config->common, &mid_dx, &mid_dy);
+    uint8_t gesture =
+        ft6236_swipe_direction(mid_dx, mid_dy, config->gesture_swipe_distance,
+                               FT6236_GESTURE_TWO_FINGER_UP, FT6236_GESTURE_TWO_FINGER_DOWN,
+                               FT6236_GESTURE_TWO_FINGER_LEFT, FT6236_GESTURE_TWO_FINGER_RIGHT);
+    if (gesture != FT6236_GESTURE_NONE) {
+      s->two_finger_reported = true;
+    }
+    return gesture;
   }
 
   /* Single contact: a swipe, but only a quick one. Anything slower is a scroll
@@ -247,32 +325,10 @@ static uint8_t ft6236_classify_gesture(const struct device *dev,
   int32_t dx = (int32_t)c0->x - (int32_t)s->start_x;
   int32_t dy = (int32_t)c0->y - (int32_t)s->start_y;
 
-  /* The classifier works in panel units, so fold in the orientation flags to
-   * keep "up" meaning up in the keyboard's frame. */
-  if (config->common.inverted_x) {
-    dx = -dx;
-  }
-  if (config->common.inverted_y) {
-    dy = -dy;
-  }
-  if (config->common.swapped_x_y) {
-    int32_t tmp = dx;
-    dx = dy;
-    dy = tmp;
-  }
-
-  int32_t adx = (dx < 0) ? -dx : dx;
-  int32_t ady = (dy < 0) ? -dy : dy;
-  int32_t threshold = config->gesture_swipe_distance;
-  uint8_t gesture = FT6236_GESTURE_NONE;
-
-  /* The dominant axis wins, so a diagonal drag does not report both. */
-  if (adx >= threshold && adx >= ady) {
-    gesture = (dx > 0) ? FT6236_GESTURE_RIGHT : FT6236_GESTURE_LEFT;
-  } else if (ady >= threshold) {
-    gesture = (dy > 0) ? FT6236_GESTURE_DOWN : FT6236_GESTURE_UP;
-  }
-
+  ft6236_orient_delta(&config->common, &dx, &dy);
+  uint8_t gesture =
+      ft6236_swipe_direction(dx, dy, config->gesture_swipe_distance, FT6236_GESTURE_UP,
+                             FT6236_GESTURE_DOWN, FT6236_GESTURE_LEFT, FT6236_GESTURE_RIGHT);
   if (gesture != FT6236_GESTURE_NONE) {
     s->swipe_reported = true;
   }
