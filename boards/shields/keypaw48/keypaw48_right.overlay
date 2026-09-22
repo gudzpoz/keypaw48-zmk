@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include <input/processors.dtsi>
 #include <dt-bindings/keypaw/rgb_matrix.h>
 
 #include "keypaw48.dtsi"
@@ -38,6 +39,10 @@
     glidepoint_listener {
         compatible = "zmk,input-listener";
         device = <&paw3395>;
+        glidepoint_scroller: glidepoint_scroller {
+            // layers = specified in keypaw48.keymap;
+            input-processors = <&zip_xy_to_scroll_mapper>;
+        };
     };
 
     ft6236_listener: ft6236_listener {

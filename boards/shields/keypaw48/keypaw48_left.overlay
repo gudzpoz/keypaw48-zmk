@@ -35,4 +35,7 @@
         40 39 38
         >;
     };
+    glidepoint_scroller: glidepoint_scroller {
+        // unused, see keypaw48_right.overlay
+    };
 };

@@ -29,6 +29,11 @@
 #define FN1 6
 #define FN2 7
 
+&glidepoint_scroller {
+    layers = <FN1>;
+};
+
+
 / {
     behaviors {
         jd_brt: jd_brt {
