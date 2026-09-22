@@ -88,7 +88,7 @@
             initial-brightness = <30>;
             initial-effect = <0>;
             initial-on;
-            indicators = <&caps &dm_rec &layer_fn1 &layer_fn2 &layer_num &layer_pad>;
+            indicators = <&caps &dm_rec &layer_sym &layer_fun &layer_pad &layer_fn2>;
 
             // Both `index` and the declaration order matter: an effect's index
             // must equal its position among these children (they travel the
