@@ -7,8 +7,8 @@
  * The FT6x36 family stores touch point 1 at registers 0x03..0x06 and touch
  * point 2 at 0x09..0x0C. Each point occupies XH, XL, YH, YL (4 bytes of usable
  * coordinate data); the weight/misc bytes between them are reserved on this
- * part. Both points are read: point 1 drives scrolling, and the pair drives the
- * firmware gesture classifier (see ft6236.c).
+ * part. Both points are read: the pair drives the firmware gesture classifier
+ * (see ft6236.c), which is the only thing the driver reports.
  *
  * GEST_ID (0x01) is deliberately absent: this panel answers 0x00 there for
  * every touch, so the on-chip gesture engine is unusable. The gesture ids the

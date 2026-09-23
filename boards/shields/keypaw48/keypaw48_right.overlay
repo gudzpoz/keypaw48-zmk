@@ -49,19 +49,8 @@
         compatible = "zmk,input-listener";
         device = <&ft6236_split>;
 
-        /* Scroll tuning: param1 = X, param2 = Y, in raw panel pixels per wheel
-         * notch (0 -> 1), lower is faster. This panel is ~195 px/inch, so 36 is
-         * ~5.4 notches per inch. The processor logs pixels vs notches per touch.
-         *
-         * Gesture dispatch comes first: it consumes the codes it maps and stops
-         * the chain, so the scroll processor never sees a gesture. */
-        input-processors = <&ft6236_gestures &ft6236_scroll 36 36>;
-    };
-
-    /* Single-finger scroll for the FT6236's single-touch frames. */
-    ft6236_scroll: ft6236_scroll {
-        compatible = "zmk,input-processor-ft6236-scroll";
-        #input-processor-cells = <2>;
-        scroll-natural;
+        /* The driver does not report touch coordinates, and this chain exists
+         * purely to map gesture codes onto behaviours (table in the keymap). */
+        input-processors = <&ft6236_gestures>;
     };
 };

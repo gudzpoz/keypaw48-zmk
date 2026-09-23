@@ -37,9 +37,12 @@ properties:
     default: 500
     description: |
       Maximum time between a gesture starting and covering
-      gesture-swipe-distance, for the movement to count as a swipe. Slower drags
-      are treated as scrolling and report no gesture. 0 disables the limit, which
-      makes any drag long enough to cross the threshold a swipe.
+      gesture-swipe-distance, for the movement to count as a swipe. 0 disables
+      the limit. For a one-finger swipe this is a second limit on top of
+      gesture-press-settle-ms: the flick has to start inside the settle window,
+      so a finger that dwells and then drags is a press/drag, not a swipe. A
+      two-finger pair that is still moving only slowly after this is left alone
+      (and can still be read as a two-finger tap if it then lifts).
 
   gesture-pinch-distance:
     type: int
@@ -50,3 +53,35 @@ properties:
       closing). A pinch is only reported when the separation changed more than
       the pair's midpoint moved, so a two-finger swipe that spreads the fingers
       slightly still reads as a swipe.
+
+  gesture-press-settle-ms:
+    type: int
+    default: 40
+    description: |
+      Delay, in ms, before a single-finger contact is committed as
+      FT6236_GESTURE_PRESS. It exists so a second finger landing shortly after
+      the first (the start of a pinch or two-finger swipe) cancels the press
+      instead of emitting a stray left click. A finger that lifts inside the
+      delay is still reported, as a one-shot tap, so a quick tap clicks. The
+      window doubles as the one-finger flick window: if the finger crosses
+      gesture-swipe-distance inside it the contact is reported as a swipe
+      instead of a press. Raise it if flicks are being missed; 0 commits the
+      press on the first contact frame and disables one-finger swipes.
+
+  gesture-tap-timeout-ms:
+    type: int
+    default: 250
+    description: |
+      Maximum lifetime, in ms, of a two-finger pair that triggers neither a
+      pinch nor a two-finger swipe, for its lift to count as
+      FT6236_GESTURE_TWO_FINGER_TAP. A pair held longer than this is not a tap.
+      0 disables the time limit.
+
+  gesture-poll-ms:
+    type: int
+    default: 500
+    description: |
+      While a gesture session is open the driver re-reads the panel at this
+      interval, so a lift interrupt that was missed (an I2C error, or an edge
+      coalesced behind the read that was already running) still releases a held
+      gesture instead of leaving a mouse button stuck down. 0 disables the poll.

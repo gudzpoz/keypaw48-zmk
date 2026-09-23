@@ -75,12 +75,21 @@
     ft6236_gestures: ft6236_gestures {
         compatible = "zmk,input-processor-behaviors";
         #input-processor-cells = <0>;
+        /* Gestures are held from recognition until the finger(s) lift, so a
+         * momentary binding like &mkp LCLK is a real button hold: a one-finger
+         * press-drag is a click-drag and a quick one-finger tap is a click. */
         codes = <
-        FT6236_GESTURE_ZOOM_IN          FT6236_GESTURE_ZOOM_OUT
-        FT6236_GESTURE_TWO_FINGER_UP    FT6236_GESTURE_TWO_FINGER_DOWN
-        FT6236_GESTURE_TWO_FINGER_LEFT  FT6236_GESTURE_TWO_FINGER_RIGHT
+        FT6236_GESTURE_PRESS           FT6236_GESTURE_TWO_FINGER_TAP
+        FT6236_GESTURE_UP              FT6236_GESTURE_DOWN
+        FT6236_GESTURE_LEFT            FT6236_GESTURE_RIGHT
+        FT6236_GESTURE_ZOOM_IN         FT6236_GESTURE_ZOOM_OUT
+        FT6236_GESTURE_TWO_FINGER_UP   FT6236_GESTURE_TWO_FINGER_DOWN
+        FT6236_GESTURE_TWO_FINGER_LEFT FT6236_GESTURE_TWO_FINGER_RIGHT
         >;
         bindings = <
+        &mkp LCLK      &mkp RCLK
+        &kp PG_UP      &kp PG_DN
+        &kp HOME       &kp END
         &kp LC(EQUAL)  &kp LC(MINUS)
         &kp C_VOL_UP   &kp C_VOL_DN
         &kp C_PREV     &kp C_NEXT
