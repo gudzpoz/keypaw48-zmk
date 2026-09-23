@@ -30,7 +30,11 @@
 #define FN2 6
 
 &glidepoint_scroller {
-    layers = <SYM FUN>;
+    layers = <SYM>;
+};
+
+&glidepoint_cursor {
+    layers = <FUN>;
 };
 
 / {
@@ -94,6 +98,15 @@
         &kp C_VOL_UP   &kp C_VOL_DN
         &kp C_PREV     &kp C_NEXT
         >;
+    };
+
+    axis_tap: axis_tap {
+        compatible = "zmk,input-processor-axis-tap";
+        #input-processor-cells = <0>;
+        /* Tuning knobs: counts of trackball travel per arrow step */
+        x-threshold = <32>;
+        y-threshold = <160>;
+        bindings = <&kp LEFT &kp RIGHT &kp UP &kp DOWN>;
     };
 
     combos {

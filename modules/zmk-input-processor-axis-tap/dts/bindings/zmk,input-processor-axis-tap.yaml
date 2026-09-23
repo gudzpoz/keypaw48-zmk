@@ -1,0 +1,29 @@
+# Copyright (c) 2026 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+description: |
+  Input processor that turns relative motion into discrete behavioural taps,
+  one per accumulated threshold on the dominant axis.
+
+compatible: "zmk,input-processor-axis-tap"
+
+include: ip_zero_param.yaml
+
+properties:
+  x-threshold:
+    type: int
+    required: true
+    description: |
+      Horizontal travel (sum of REL_X values) needed to emit one tap.
+      Positive REL_X -> bindings[1] (right); negative -> bindings[0] (left).
+  y-threshold:
+    type: int
+    required: true
+    description: |
+      Vertical travel (sum of REL_Y values) needed to emit one tap.
+      Positive REL_Y -> bindings[3] (down); negative -> bindings[2] (up).
+  bindings:
+    type: phandle-array
+    required: true
+    description: |
+      Exactly four behaviours, in order: left, right, up, down.

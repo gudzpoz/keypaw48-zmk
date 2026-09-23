@@ -38,4 +38,7 @@
     glidepoint_scroller: glidepoint_scroller {
         // unused, see keypaw48_right.overlay
     };
+    glidepoint_cursor: glidepoint_cursor {
+        // unused, see keypaw48_right.overlay
+    };
 };

@@ -1,0 +1,12 @@
+# Copyright (c) 2026 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+config ZMK_INPUT_PROCESSOR_AXIS_TAP
+    bool "Axis-tap input processor"
+    default y
+    depends on DT_HAS_ZMK_INPUT_PROCESSOR_AXIS_TAP_ENABLED
+    help
+      Converts relative pointing-device motion into discrete taps of a set of
+      behaviours (for example arrow keys), one tap per accumulated threshold on
+      the dominant axis. Pair with a zmk,input-listener layer override to get
+      cursor-key behaviour from a trackball while a layer is held.

@@ -43,6 +43,10 @@
             // layers = specified in keypaw48.keymap;
             input-processors = <&zip_xy_to_scroll_mapper>;
         };
+        glidepoint_cursor: glidepoint_cursor {
+            // layers = specified in keypaw48.keymap;
+            input-processors = <&axis_tap>;
+        };
     };
 
     ft6236_listener: ft6236_listener {
