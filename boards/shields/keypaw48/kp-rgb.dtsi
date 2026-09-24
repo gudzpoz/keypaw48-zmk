@@ -221,7 +221,7 @@
                 index = <12>;
                 color = <0xFFFFFF>;
                 decrease-delay-ms = <25>;
-                spread = <40>;
+                spread = <150>;
                 area-limit = <16>;
                 increase-step = <32>;
             };
@@ -231,6 +231,29 @@
                 index = <13>;
                 color = <0x00FF00>;
                 duration = <4000>;
+            };
+            /* QMK FLAG: a left-right rainbow skewed per row, so the bands
+             * undulate like a waving flag. */
+            fx_flag: fx_flag {
+                compatible = "keypaw,rgb-matrix-rainbow";
+                #binding-cells = <0>;
+                index = <14>;
+                color = <0xFFFFFF>;
+                duration = <4000>;
+                basis = "flag";
+                palette = "rainbow";
+            };
+            /* QMK COMPLEMENT: the preset hue on the dim background, with a
+             * pressed key flashing the opposite hue. */
+            fx_complement: fx_complement {
+                compatible = "keypaw,rgb-matrix-reactive";
+                #binding-cells = <0>;
+                index = <15>;
+                color = <0xFF0000>;
+                duration = <500>;
+                spread = "point";
+                background-brightness = <10>;
+                palette = "complement";
             };
         };
     };
