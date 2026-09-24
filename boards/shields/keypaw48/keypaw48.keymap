@@ -220,13 +220,13 @@
     };
 };
 
-&rgb_indicators {
+&rgb_overlays {
     // One node per layer that should show on its own LED. Layer state exists
     // only on the central, so each node is central-authoritative: the central
     // evaluates it and pushes the on/off state to the peripheral, whose LEDs in
     // the `keys` list below then light up too.
     layer_sym: layer_sym {
-        compatible = "keypaw,rgb-indicator-layer";
+        compatible = "keypaw,rgb-overlay-layer";
         central-authoritative;
         layer = <SYM>;
         keys = <
@@ -236,7 +236,7 @@
         color = <0x00FFFF>;
     };
     layer_fun: layer_fun {
-        compatible = "keypaw,rgb-indicator-layer";
+        compatible = "keypaw,rgb-overlay-layer";
         central-authoritative;
         layer = <FUN>;
         keys = <
@@ -245,7 +245,7 @@
         color = <0xFF8000>;
     };
     layer_pad: layer_pad {
-        compatible = "keypaw,rgb-indicator-layer";
+        compatible = "keypaw,rgb-overlay-layer";
         central-authoritative;
         layer = <PAD>;
         keys = <
@@ -256,7 +256,7 @@
         color = <0xFFFF00>;
     };
     layer_fn2: layer_fn2 {
-        compatible = "keypaw,rgb-indicator-layer";
+        compatible = "keypaw,rgb-overlay-layer";
         central-authoritative;
         layer = <FN2>;
         keys = <

@@ -65,10 +65,10 @@ struct dm_slot {
  * delivered there. That workqueue is single threaded and event dispatch is
  * synchronous, so no locking is needed -- do not "fix" this with a mutex.
  *
- * The one exception is dm_recording, which the RGB matrix's indicator kind reads
+ * The one exception is dm_recording, which the RGB matrix's overlay kind reads
  * from the low-priority workqueue. It is a single naturally aligned word, so the
  * read cannot tear; it may merely lag one render tick, which is immaterial for
- * an indicator. Hence `volatile`, and still no lock.
+ * an overlay. Hence `volatile`, and still no lock.
  */
 static struct dm_slot dm_slots[CONFIG_ZMK_DYNAMIC_MACRO_SLOTS];
 static struct dm_event dm_heap[CONFIG_ZMK_DYNAMIC_MACRO_MAX_EVENTS];
@@ -87,7 +87,7 @@ static uint16_t dm_play_index;
   dm_heap_states[(n) / 8] = (dm_heap_states[(n) / 8] & ~(1 << ((n) & 7))) |    \
                             ((v) ? (1 << ((n) & 7)) : 0)
 
-/* Read by the RGB indicator kind (rgb_indicator_dynamic_macro.c), which runs on
+/* Read by the RGB overlay kind (rgb_overlay_dynamic_macro.c), which runs on
  * the low-priority workqueue. See the note above the state. */
 bool zmk_dynamic_macro_is_recording(void) { return dm_recording; }
 

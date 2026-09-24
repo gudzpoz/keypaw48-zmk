@@ -7,19 +7,19 @@
 #include <dt-bindings/zmk/rgb.h>
 
 / {
-    // Indicators are listed on each behavior in paint order. They remain
+    // Overlays are listed on each behavior in paint order. They remain
     // outside &kprgb because its children are the effect registry; this shared
     // list is referenced by the behavior below.
     //
-    // The compatible makes this the engine's indicator registry: children are
+    // The compatible makes this the engine's overlay registry: children are
     // enumerated in declaration order and that index is the bit the central
-    // uses to push each indicator's on/off state to the peripheral.
-    rgb_indicators: rgb_indicators {
-        compatible = "keypaw,rgb-indicators";
+    // uses to push each overlay's on/off state to the peripheral.
+    rgb_overlays: rgb_overlays {
+        compatible = "keypaw,rgb-overlays";
         // Placeholder target: point this at whatever key you bind Caps to. The
         // default keymap has no Caps binding, so this stays dark until then.
         caps: caps {
-            compatible = "keypaw,rgb-indicator-caps-lock";
+            compatible = "keypaw,rgb-overlay-caps-lock";
             keys = <41>;
             color = <0x00FFFF>;
         };
@@ -28,13 +28,13 @@
         // The recorder exists only there, so the central evaluates and pushes
         // the state instead of each half reading the getter.
         dm_rec: dm_rec {
-            compatible = "keypaw,rgb-indicator-dynamic-macro";
+            compatible = "keypaw,rgb-overlay-dynamic-macro";
             central-authoritative;
             keys = <11 23 35>;
             color = <0xFF0000>;
         };
 
-        // Layer indicators are defined in keypaw48.keymap.
+        // Layer overlays are defined in keypaw48.keymap.
     };
 
     // Condition -> command rules, evaluated on the central and pushed to both
@@ -88,7 +88,7 @@
             initial-brightness = <30>;
             initial-effect = <0>;
             initial-on;
-            indicators = <&caps &dm_rec &layer_sym &layer_fun &layer_pad &layer_fn2>;
+            overlays = <&caps &dm_rec &layer_sym &layer_fun &layer_pad &layer_fn2>;
 
             // Both `index` and the declaration order matter: an effect's index
             // must equal its position among these children (they travel the
@@ -102,7 +102,7 @@
                 // recording LED are composited here. fx_solid is initial-effect,
                 // so dm_rec must be listed or recording feedback would be dark
                 // at boot.
-                indicators = <&caps &dm_rec>;
+                overlays = <&caps &dm_rec>;
             };
             fx_breathe: fx_breathe {
                 compatible = "keypaw,rgb-matrix-breathe";
@@ -133,7 +133,7 @@
                 duration = <2000>;
                 background-brightness = <10>;
                 // Radial ripples own the whole half: keep the canvas clean.
-                no-indicators;
+                no-overlays;
             };
             /* Example custom effect from the separate zmk-rgb-effect-example
              * module -- proves a new effect can be added without editing
