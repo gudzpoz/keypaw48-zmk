@@ -43,16 +43,27 @@ struct kp_eff_example_data {
 
 /* Render the comet: bright at the head position, fading to black behind it.
  * The head travels the board's x span (f->board_length, measured by the engine
- * from the physical layout) once per animation period. */
+ * from the physical layout) plus one tail-length of padding at each end, once
+ * per animation period.
+ *
+ * The padding matters: the comet's gradient has a finite width (tail), so
+ * wrapping the head at the board edges alone would jump it straight from the
+ * last LED to the first while the edge of the gradient is still lit -- the
+ * comet blinks out of one side and into the other. Sweeping from `tail` before
+ * the left edge to `tail` past the right edge leaves it fully dark at both ends
+ * of the cycle, so the wrap back to the start is invisible. */
 static void kp_eff_example_render(const struct device *dev, struct kp_rgb_frame *f) {
   struct kp_eff_example_data *data = dev->data;
   const struct kp_eff_example_config *cfg = dev->config;
   uint32_t period = kp_rgb_effect_period(dev);
   uint32_t phase = data->phase_ms % period;
   uint8_t pct = kp_rgb_brightness_pct(f);
-  uint32_t board = MAX(f->board_length, 1u);
-  int32_t head = (int32_t)(phase * board / period);
+  int32_t board = MAX(f->board_length, 1u);
   int32_t tail = MAX(cfg->tail_length, 1);
+  int32_t span = board + 2 * tail;
+  /* 64-bit intermediate: span can exceed 16 bits, so phase * span would
+   * otherwise overflow 32 bits. */
+  int32_t head = -tail + (int32_t)((uint64_t)phase * (uint32_t)span / period);
   struct kp_rgb_hsb base = data->common.color;
 
   for (size_t i = 0; i < f->count; i++) {
