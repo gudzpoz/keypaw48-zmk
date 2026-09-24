@@ -36,16 +36,28 @@
         >;
     };
 
+    /* Caps the HID report rate at what the active endpoint can carry. Must be
+     * first in every chain so it sees raw motion, and present in the base
+     * config too: a matching layer override with process-next unset does not
+     * fall through to the base chain. */
+    rel_throttle: rel_throttle {
+        compatible = "zmk,input-processor-rel-throttle";
+        #input-processor-cells = <0>;
+        ble-interval-ms = <15>;
+        usb-interval-ms = <0>;
+    };
+
     glidepoint_listener {
         compatible = "zmk,input-listener";
         device = <&paw3395>;
+        input-processors = <&rel_throttle>;
         glidepoint_scroller: glidepoint_scroller {
             // layers = specified in keypaw48.keymap;
-            input-processors = <&zip_xy_to_scroll_mapper>;
+            input-processors = <&rel_throttle &zip_xy_to_scroll_mapper>;
         };
         glidepoint_cursor: glidepoint_cursor {
             // layers = specified in keypaw48.keymap;
-            input-processors = <&axis_tap>;
+            input-processors = <&rel_throttle &axis_tap>;
         };
     };
 

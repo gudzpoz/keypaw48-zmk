@@ -1,0 +1,17 @@
+# Copyright (c) 2026 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+config ZMK_INPUT_PROCESSOR_REL_THROTTLE
+    bool "Relative-motion report throttle input processor"
+    default y
+    depends on DT_HAS_ZMK_INPUT_PROCESSOR_REL_THROTTLE_ENABLED
+    help
+      Coalesces relative pointing-device motion so at most one HID report per
+      interval is sent, while keeping every reported delta (nothing is
+      dropped). The interval is selected at runtime from the active endpoint
+      transport, so USB can stay unthrottled while BLE is throttled enough for
+      the HID-over-GATT report queue to keep up.
+
+      Place it first in a zmk,input-listener input-processors chain, and in the
+      listener's base config as well as any layer overrides, since a matching
+      override with process-next unset does not fall through to the base chain.

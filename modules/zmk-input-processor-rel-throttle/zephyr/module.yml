@@ -1,0 +1,6 @@
+name: zmk-input-processor-rel-throttle
+build:
+  cmake: .
+  kconfig: Kconfig
+  settings:
+    dts_root: .

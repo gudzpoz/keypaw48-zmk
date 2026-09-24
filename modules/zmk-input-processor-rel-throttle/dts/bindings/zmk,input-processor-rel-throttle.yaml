@@ -1,0 +1,36 @@
+# Copyright (c) 2026 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+description: |
+  Input processor that rate-limits relative motion reports.
+
+  The ZMK input listener accumulates REL_X/REL_Y/REL_WHEEL/REL_HWHEEL and only
+  emits a HID report when an event carries the sync flag. This processor clears
+  that flag while less than the selected interval has elapsed since the last
+  report we let through, so the listener keeps accumulating and a later event
+  reports the whole accumulated delta at once. Deltas are preserved; only the
+  number of reports is reduced.
+
+  The interval is picked per event from zmk_endpoint_get_selected().transport,
+  so a single set of interval values covers both transports.
+
+  Must be placed first in the input-processors chain so it sees raw motion.
+  Use an interval of 0 to disable throttling for that transport.
+
+compatible: "zmk,input-processor-rel-throttle"
+
+include: ip_zero_param.yaml
+
+properties:
+  ble-interval-ms:
+    type: int
+    default: 15
+    description: |
+      Minimum interval between relative-motion HID reports when the active
+      endpoint is BLE, in milliseconds. 0 disables throttling.
+  usb-interval-ms:
+    type: int
+    default: 0
+    description: |
+      Minimum interval between relative-motion HID reports when the active
+      endpoint is USB, in milliseconds. 0 disables throttling.
