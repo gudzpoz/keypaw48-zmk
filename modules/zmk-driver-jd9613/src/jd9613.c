@@ -36,6 +36,12 @@ struct jd9613_data {
   enum display_pixel_format pixel_format;
   bool blanking_on: 1;
   bool initialized: 1;
+  /* Serializes access to the panel bus. The LVGL flush (display work queue)
+   * and the brightness behavior (keymap/event context) both drive the same
+   * SPI bus and DC pin; without this lock their transactions can interleave,
+   * toggling DC mid-transfer and letting pixel bytes be interpreted as DCS
+   * commands (e.g. DISPOFF/SLPIN), which turns the panel off for good. */
+  struct k_mutex lock;
 };
 
 /* These helper macros are undefined later. */
@@ -235,7 +241,7 @@ static int jd9613_set_window(const struct jd9613_cfg *cfg, uint16_t x0, uint16_t
 
 static int jd9613_full_init(const struct device *dev);
 
-static int jd9613_blanking_on(const struct device *dev) {
+static int jd9613_blanking_on_unlocked(const struct device *dev) {
   struct jd9613_data *data = dev->data;
   const struct jd9613_cfg *cfg = dev->config;
   int ret;
@@ -255,7 +261,7 @@ static int jd9613_blanking_on(const struct device *dev) {
   return 0;
 }
 
-static int jd9613_blanking_off(const struct device *dev) {
+static int jd9613_blanking_off_unlocked(const struct device *dev) {
   struct jd9613_data *data = dev->data;
   const struct jd9613_cfg *cfg = dev->config;
   int ret;
@@ -281,8 +287,30 @@ static int jd9613_blanking_off(const struct device *dev) {
   return 0;
 }
 
-static int jd9613_write(const struct device *dev, const uint16_t x, const uint16_t y,
-                        const struct display_buffer_descriptor *desc, const void *buf) {
+static int jd9613_blanking_on(const struct device *dev) {
+  struct jd9613_data *data = dev->data;
+  int ret;
+
+  k_mutex_lock(&data->lock, K_FOREVER);
+  ret = jd9613_blanking_on_unlocked(dev);
+  k_mutex_unlock(&data->lock);
+  return ret;
+}
+
+static int jd9613_blanking_off(const struct device *dev) {
+  struct jd9613_data *data = dev->data;
+  int ret;
+
+  k_mutex_lock(&data->lock, K_FOREVER);
+  ret = jd9613_blanking_off_unlocked(dev);
+  k_mutex_unlock(&data->lock);
+  return ret;
+}
+
+static int jd9613_write_unlocked(const struct device *dev, const uint16_t x,
+                                 const uint16_t y,
+                                 const struct display_buffer_descriptor *desc,
+                                 const void *buf) {
   const struct jd9613_cfg *cfg = dev->config;
   struct jd9613_data *data = dev->data;
   const uint8_t *write_data = buf;
@@ -323,6 +351,19 @@ static int jd9613_write(const struct device *dev, const uint16_t x, const uint16
   return 0;
 }
 
+static int jd9613_write(const struct device *dev, const uint16_t x,
+                        const uint16_t y,
+                        const struct display_buffer_descriptor *desc,
+                        const void *buf) {
+  struct jd9613_data *data = dev->data;
+  int ret;
+
+  k_mutex_lock(&data->lock, K_FOREVER);
+  ret = jd9613_write_unlocked(dev, x, y, desc, buf);
+  k_mutex_unlock(&data->lock);
+  return ret;
+}
+
 static void jd9613_get_capabilities(const struct device *dev,
                                     struct display_capabilities *caps) {
   const struct jd9613_cfg *cfg = dev->config;
@@ -340,7 +381,13 @@ static void jd9613_get_capabilities(const struct device *dev,
 static int jd9613_set_brightness(const struct device *dev,
                                  const uint8_t brightness) {
   const struct jd9613_cfg *cfg = dev->config;
-  return jd9613_write_cmd(cfg, JD9613_CMD_WRDISBV, &brightness, 1);
+  struct jd9613_data *data = dev->data;
+  int ret;
+
+  k_mutex_lock(&data->lock, K_FOREVER);
+  ret = jd9613_write_cmd(cfg, JD9613_CMD_WRDISBV, &brightness, 1);
+  k_mutex_unlock(&data->lock);
+  return ret;
 }
 
 static int jd9613_set_pixel_format(const struct device *dev,
@@ -476,6 +523,8 @@ static int jd9613_init(const struct device *dev) {
       gpio_pin_configure_dt(&cfg->reset, GPIO_OUTPUT_INACTIVE) < 0) {
     return -EIO;
   }
+
+  k_mutex_init(&data->lock);
 
   /* Init deferred to first blanking off */
   data->pixel_format = PIXEL_FORMAT_RGB_888;

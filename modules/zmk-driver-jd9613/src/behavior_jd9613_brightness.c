@@ -65,6 +65,9 @@ static int jd9613_brightness_settings_load_cb(const char *name, size_t len,
     }
     int rc = read_cb(cb_arg, &brightness_pct, sizeof(brightness_pct));
     if (rc >= 0) {
+      /* A stale or corrupt setting could hold an out-of-range byte; clamp so
+       * the percent -> register scaling below can never produce garbage. */
+      brightness_pct = MIN(brightness_pct, 100U);
       rc = jd9613_brightness_apply();
     }
     return MIN(rc, 0);
