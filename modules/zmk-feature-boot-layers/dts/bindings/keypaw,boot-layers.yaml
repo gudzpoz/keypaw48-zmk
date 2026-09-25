@@ -7,6 +7,4 @@ properties:
     type: array
     required: true
     description: |
-      Keymap layer IDs to activate once at boot. IDs, not indices, matching the
-      `layer` property of keypaw,rgb-trigger-layer / rgb-overlay-layer. Entries >=
-      ZMK_KEYMAP_LAYERS_LEN are logged and skipped.
+      Keymap layer IDs to activate once at boot.

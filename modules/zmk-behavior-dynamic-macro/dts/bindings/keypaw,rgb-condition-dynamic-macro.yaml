@@ -1,0 +1,12 @@
+# Copyright (c) 2026 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+description: |
+  Dynamic macro recording condition: active while &dm is recording a take into a
+  scratch buffer. State is sampled on every RGB tick through the module's
+  internal accessor, so there is nothing to subscribe to.
+
+  Pair it with a default (central-evaluated) overlay, because the recorder exists
+  only on the split central.
+
+compatible: "keypaw,rgb-condition-dynamic-macro"

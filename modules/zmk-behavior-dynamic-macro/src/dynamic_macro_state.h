@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: MIT
  *
  * Internal accessor for the recorder state, shared between the behavior and the
- * RGB overlay kind in this module. Not public API: the module publishes no
- * other module's contract.
+ * RGB condition in this module. Not public API: the module publishes no other
+ * module's contract.
  */
 
 #pragma once
