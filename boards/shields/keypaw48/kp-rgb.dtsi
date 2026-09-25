@@ -45,8 +45,8 @@
     // There is deliberately no `triggers = <...>;` list here: every devicetree
     // node depends on its parent, so a parent pointing at its own child is a
     // phandle cycle. And these nodes are NOT children of &kprgb, whose children
-    // are the effect registry (an effect's `index` must equal the child
-    // position) -- besides which the bindings below reference &kprgb back.
+    // are the effect registry (an effect is identified by its position there)
+    // -- besides which the bindings below reference &kprgb back.
     rgb_triggers: rgb_triggers {
         compatible = "keypaw,rgb-trigger-table";
         // The actual triggers are defined in keypaw48.keymap.
@@ -62,7 +62,6 @@
     //     fx_main: fx_main {
     //         compatible = "keypaw,rgb-matrix-solid";
     //         #binding-cells = <0>;
-    //         index = <0>;
     //     };
     // };
     // rgb_num: rgb_num {
@@ -72,7 +71,6 @@
     //     fx_num: fx_num {
     //         compatible = "keypaw,rgb-matrix-solid";
     //         #binding-cells = <0>;
-    //         index = <0>;
     //     };
     // };
 
@@ -90,13 +88,12 @@
             initial-on;
             overlays = <&caps &dm_rec &layer_sym &layer_fun &layer_pad &layer_fn2>;
 
-            // Both `index` and the declaration order matter: an effect's index
-            // must equal its position among these children (they travel the
-            // split link as a single byte).
+            // Declaration order is the identity: an effect's position among
+            // these children is the slot that travels the split link as a
+            // single byte.
             fx_solid: fx_solid {
                 compatible = "keypaw,rgb-matrix-solid";
                 #binding-cells = <0>;
-                index = <0>;
                 color = <0xFF0000>;
                 // Per-effect override: only the Caps LED and the dynamic-macro
                 // recording LED are composited here. fx_solid is initial-effect,
@@ -107,20 +104,17 @@
             fx_breathe: fx_breathe {
                 compatible = "keypaw,rgb-matrix-breathe";
                 #binding-cells = <0>;
-                index = <1>;
                 color = <0x0000FF>;
                 duration = <2400>;
             };
             fx_spectrum: fx_spectrum {
                 compatible = "keypaw,rgb-matrix-spectrum";
                 #binding-cells = <0>;
-                index = <2>;
                 duration = <4000>;
             };
             fx_reactive: fx_reactive {
                 compatible = "keypaw,rgb-matrix-reactive";
                 #binding-cells = <0>;
-                index = <3>;
                 color = <0xFFFFFF>;
                 duration = <500>;
                 background-brightness = <10>;
@@ -128,7 +122,6 @@
             fx_ripple: fx_ripple {
                 compatible = "keypaw,rgb-matrix-ripple";
                 #binding-cells = <0>;
-                index = <4>;
                 color = <0x00FFFF>;
                 duration = <2000>;
                 background-brightness = <10>;
@@ -141,7 +134,6 @@
             fx_example: fx_example {
                 compatible = "keypaw,rgb-matrix-example";
                 #binding-cells = <0>;
-                index = <5>;
                 color = <0x00FFAA>;
                 duration = <3000>;
                 tail-length = <200>;
@@ -152,7 +144,6 @@
             fx_fn_orange: fx_fn_orange {
                 compatible = "keypaw,rgb-matrix-solid";
                 #binding-cells = <0>;
-                index = <6>;
                 color = <0xFF8000>;
                 no-cycle;
             };
@@ -162,7 +153,6 @@
             fx_rainbow: fx_rainbow {
                 compatible = "keypaw,rgb-matrix-rainbow";
                 #binding-cells = <0>;
-                index = <7>;
                 color = <0xFFFFFF>;
                 duration = <4000>;
                 basis = "x";
@@ -172,7 +162,6 @@
             fx_band: fx_band {
                 compatible = "keypaw,rgb-matrix-band";
                 #binding-cells = <0>;
-                index = <8>;
                 color = <0x00FF00>;
                 duration = <3000>;
                 channel = "sat";
@@ -181,7 +170,6 @@
             fx_static: fx_static {
                 compatible = "keypaw,rgb-matrix-static";
                 #binding-cells = <0>;
-                index = <9>;
                 color = <0xFFFFFF>;
                 /* Per-LED colours indexed by strip chain position (left half has
                  * 30 LEDs). A stand-in for QMK ALPHAS_MODS: alternate hues to
@@ -200,15 +188,13 @@
             fx_rain: fx_rain {
                 compatible = "keypaw,rgb-matrix-rain";
                 #binding-cells = <0>;
-                index = <10>;
-                color = <0xFFFFFF>;
+                color = <0x0080FF>;
                 duration = <4000>;
                 mode = "drops";
             };
             fx_starlight: fx_starlight {
                 compatible = "keypaw,rgb-matrix-starlight";
                 #binding-cells = <0>;
-                index = <11>;
                 color = <0xFFFFFF>;
                 duration = <4000>;
                 smooth;
@@ -218,7 +204,6 @@
             fx_heatmap: fx_heatmap {
                 compatible = "keypaw,rgb-matrix-heatmap";
                 #binding-cells = <0>;
-                index = <12>;
                 color = <0xFFFFFF>;
                 decrease-delay-ms = <25>;
                 spread = <150>;
@@ -228,7 +213,6 @@
             fx_digital_rain: fx_digital_rain {
                 compatible = "keypaw,rgb-matrix-digital-rain";
                 #binding-cells = <0>;
-                index = <13>;
                 color = <0x00FF00>;
                 duration = <4000>;
             };
@@ -237,7 +221,6 @@
             fx_flag: fx_flag {
                 compatible = "keypaw,rgb-matrix-rainbow";
                 #binding-cells = <0>;
-                index = <14>;
                 color = <0xFFFFFF>;
                 duration = <4000>;
                 basis = "flag";
@@ -248,7 +231,6 @@
             fx_complement: fx_complement {
                 compatible = "keypaw,rgb-matrix-reactive";
                 #binding-cells = <0>;
-                index = <15>;
                 color = <0xFF0000>;
                 duration = <500>;
                 spread = "point";

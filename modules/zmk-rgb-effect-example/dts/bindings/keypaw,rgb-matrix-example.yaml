@@ -4,9 +4,8 @@
 description: |
   Example custom keypaw RGB matrix effect, demonstrating the extension point. Declared
   as a child node of the &kprgb behavior (e.g. fx_example { ... }); referenced from a
-  keymap by name (&fx_example). The explicit `index` is the stable identifier the
-  engine uses on the wire, like an SPI `reg` -- assign a unique value per effect, and
-  keep it equal to the node's position among &kprgb's children.
+  keymap by name (&fx_example). The engine identifies the effect by its position among
+  &kprgb's children, so declaration order is the on-wire identity.
 
   This compatible lives in the separate zmk-rgb-effect-example module to prove a new
   effect can be added without editing zmk-rgb-matrix.
