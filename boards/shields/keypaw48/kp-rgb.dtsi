@@ -7,44 +7,41 @@
 #include <dt-bindings/zmk/rgb.h>
 
 / {
-    // Conditions are reusable predicates. One definition serves an overlay
-    // (and, later, a trigger), so a layer or Caps Lock is not reimplemented per
-    // consumer. They live outside &rgb_overlays so the compositor's nested
-    // effect is the only child of its overlay node.
+    // Conditions are reusable predicates for overlays and triggers
     rgb_conditions: rgb_conditions {
         compatible = "keypaw,rgb-conditions";
 
-        // Placeholder target: point this at whatever key you bind Caps to. The
-        // default keymap has no Caps binding, so this stays dark until then.
+        // On when the host reports CapsLock on
         cond_caps: cond_caps {
             compatible = "keypaw,rgb-condition-caps-lock";
         };
 
-        // The recorder exists only on the central half. The overlay below uses
-        // the default (central evaluation), so this predicate is never called on
-        // a peripheral -- but it still links there and returns false.
+        // On when our dynamic macro module is recording
         cond_dm_rec: cond_dm_rec {
             compatible = "keypaw,rgb-condition-dynamic-macro";
         };
 
-        // The trigger table's catch-all, so a rule always wins.
+        // A always-true condition
         cond_always: cond_always {
             compatible = "keypaw,rgb-condition-always";
         };
+
+        // A manually toggled condition, toggled by the nested `&tg_batt` behavior
+        cond_batt: cond_batt {
+            compatible = "keypaw,rgb-condition-latch";
+
+            tg_batt: tg_batt {
+                compatible = "keypaw,behavior-rgb-overlay-toggle";
+                #binding-cells = <0>;
+            };
+        };
     };
 
-    // Overlays are listed on each behavior in paint order. They remain
-    // outside &kprgb because its children are the effect registry; this shared
-    // list is referenced by the behavior below.
-    //
-    // The compatible makes this the engine's overlay registry: children are
-    // enumerated in declaration order and that index is the bit the central
-    // uses to push each overlay's on/off state to the peripheral.
+    // The `rgb_overlays` container is the overlay registry.
+    // The indices of overlays in it is used as IDs to sync between split halves.
     rgb_overlays: rgb_overlays {
         compatible = "keypaw,rgb-overlays";
 
-        // A compositor: while its condition is active it renders its nested
-        // effect and blends the result over the targeted LEDs.
         caps: caps {
             compatible = "keypaw,rgb-overlay";
             condition = <&cond_caps>;
@@ -56,10 +53,6 @@
             };
         };
 
-        // Lights while &dm is recording. Keys have to be on the central half.
-        // The recorder exists only there; the overlay is left at the default
-        // (central-evaluated), so the central evaluates the condition and pushes
-        // the state instead of each half reading it.
         dm_rec: dm_rec {
             compatible = "keypaw,rgb-overlay";
             condition = <&cond_dm_rec>;
@@ -71,7 +64,8 @@
             };
         };
 
-        // Layer overlays are defined in keypaw48.keymap.
+        // Layer and battery overlays are defined in keypaw48.keymap, which is
+        // what fixes the paint order: it is the declaration order here.
     };
 
     // Condition -> command rules, evaluated on the central and pushed to both
@@ -118,12 +112,12 @@
             #binding-cells = <2>;
             display-name = "RGB Matrix";
 
-            max-brightness = <40>;
+            max-brightness = <100>;
             idle-brightness = <30>;
-            initial-brightness = <30>;
+            initial-brightness = <100>;
             initial-effect = <0>;
+            initial-duration-ms = <4000>;
             initial-on;
-            overlays = <&caps &dm_rec &layer_sym &layer_fun &layer_pad &layer_fn2>;
 
             // Declaration order is the identity: an effect's position among
             // these children is the slot that travels the split link as a
@@ -131,78 +125,13 @@
             fx_solid: fx_solid {
                 compatible = "keypaw,rgb-matrix-solid";
                 #binding-cells = <0>;
-                color = <0xFF0000>;
-                // Per-effect override: only the Caps LED and the dynamic-macro
-                // recording LED are composited here. fx_solid is initial-effect,
-                // so dm_rec must be listed or recording feedback would be dark
-                // at boot.
-                overlays = <&caps &dm_rec>;
-            };
-            fx_breathe: fx_breathe {
-                compatible = "keypaw,rgb-matrix-breathe";
-                #binding-cells = <0>;
                 color = <0x0000FF>;
-                duration = <2400>;
-            };
-            fx_spectrum: fx_spectrum {
-                compatible = "keypaw,rgb-matrix-spectrum";
-                #binding-cells = <0>;
-                duration = <4000>;
-            };
-            fx_reactive: fx_reactive {
-                compatible = "keypaw,rgb-matrix-reactive";
-                #binding-cells = <0>;
-                color = <0xFFFFFF>;
-                duration = <500>;
-                background-brightness = <10>;
-            };
-            fx_ripple: fx_ripple {
-                compatible = "keypaw,rgb-matrix-ripple";
-                #binding-cells = <0>;
-                color = <0x00FFFF>;
-                duration = <2000>;
-                background-brightness = <10>;
-                // Radial ripples own the whole half: keep the canvas clean.
-                no-overlays;
-            };
-            /* Example custom effect from the separate zmk-rgb-effect-example
-             * module -- proves a new effect can be added without editing
-             * zmk-rgb-matrix. */
-            fx_example: fx_example {
-                compatible = "keypaw,rgb-matrix-example";
-                #binding-cells = <0>;
-                color = <0x00FFAA>;
-                duration = <3000>;
-                tail-length = <200>;
-            };
-            /* Layer variant, reached only through the &trig_fn example above.
-             * `no-cycle` keeps it out of RGB_EFF/EFR so it does not clutter the
-             * normal cycle; RGB_EFS 7 and a trigger can still select it. */
-            fx_fn_orange: fx_fn_orange {
-                compatible = "keypaw,rgb-matrix-solid";
-                #binding-cells = <0>;
-                color = <0xFF8000>;
-                no-cycle;
-            };
-
-            /* Moving spatial fields share compatible families; attributes pick
-             * the sub-effect. Instantiate more nodes for extra cycle entries. */
-            fx_rainbow: fx_rainbow {
-                compatible = "keypaw,rgb-matrix-rainbow";
-                #binding-cells = <0>;
-                color = <0xFFFFFF>;
-                duration = <4000>;
-                basis = "x";
-                direction = "out";
-                palette = "rainbow";
-            };
-            fx_band: fx_band {
-                compatible = "keypaw,rgb-matrix-band";
-                #binding-cells = <0>;
-                color = <0x00FF00>;
-                duration = <3000>;
-                channel = "sat";
-                shape = "linear";
+                // Per-effect override: only the Caps LED, the dynamic-macro
+                // recording LED and the battery gauge are composited here.
+                // fx_solid is initial-effect, so dm_rec must be listed or
+                // recording feedback would be dark at boot, and batt must be
+                // listed or the gauge would be invisible while solid is active.
+                overlays = <&caps &dm_rec &batt>;
             };
             fx_static: fx_static {
                 compatible = "keypaw,rgb-matrix-static";
@@ -219,60 +148,80 @@
                     0x00FF00 0x00FF00 0x00FF00 0x00FF00 0x00FF00 0x00FF00
                 >;
             };
-
             /* Stochastic fields share compatible families; attributes pick the
              * sub-effect. Instantiate more nodes for extra cycle entries. */
             fx_rain: fx_rain {
                 compatible = "keypaw,rgb-matrix-rain";
                 #binding-cells = <0>;
-                color = <0x0080FF>;
                 duration = <4000>;
-                mode = "drops";
+                mode = "jellybean";
+                color = <0xFF0000>;
             };
-            fx_starlight: fx_starlight {
-                compatible = "keypaw,rgb-matrix-starlight";
+            fx_breathe: fx_breathe {
+                compatible = "keypaw,rgb-matrix-breathe";
                 #binding-cells = <0>;
-                color = <0xFFFFFF>;
-                duration = <4000>;
-                smooth;
-                dual-hue;
-                dual-sat;
+                mode = "brightness";
+                color = <0xFF0000>;
             };
-            fx_heatmap: fx_heatmap {
-                compatible = "keypaw,rgb-matrix-heatmap";
+            fx_spectrum: fx_spectrum {
+                compatible = "keypaw,rgb-matrix-spectrum";
                 #binding-cells = <0>;
-                color = <0xFFFFFF>;
-                decrease-delay-ms = <25>;
-                spread = <150>;
-                area-limit = <16>;
-                increase-step = <32>;
+            };
+            fx_ripple: fx_ripple {
+                compatible = "keypaw,rgb-matrix-ripple";
+                #binding-cells = <0>;
+                color = <0x00FFFF>;
+                duration = <1000>;
+            };
+            fx_rainbow_pinwheel: fx_rainbow_pinwheel {
+                compatible = "keypaw,rgb-matrix-rainbow";
+                #binding-cells = <0>;
+                basis = "pinwheel";
+            };
+            fx_rainbow: fx_rainbow {
+                compatible = "keypaw,rgb-matrix-rainbow";
+                #binding-cells = <0>;
+                basis = "x";
+            };
+            fx_reactive_gradient: fx_reactive_gradient {
+                compatible = "keypaw,rgb-matrix-reactive";
+                #binding-cells = <0>;
+                spread = "disc";
+                palette = "gradient";
+                color = <0x00FFFF>;
+                duration = <500>;
             };
             fx_digital_rain: fx_digital_rain {
                 compatible = "keypaw,rgb-matrix-digital-rain";
                 #binding-cells = <0>;
+                display-name = "Digital Rain";
                 color = <0x00FF00>;
-                duration = <4000>;
             };
-            /* QMK FLAG: a left-right rainbow skewed per row, so the bands
-             * undulate like a waving flag. */
-            fx_flag: fx_flag {
-                compatible = "keypaw,rgb-matrix-rainbow";
+            fx_starlight_smooth: fx_starlight_smooth {
+                compatible = "keypaw,rgb-matrix-starlight";
                 #binding-cells = <0>;
-                color = <0xFFFFFF>;
-                duration = <4000>;
-                basis = "flag";
-                palette = "rainbow";
+                color = <0xFF8080>;
+                smooth;
+                dual-sat;
             };
-            /* QMK COMPLEMENT: the preset hue on the dim background, with a
-             * pressed key flashing the opposite hue. */
-            fx_complement: fx_complement {
+            fx_reactive_nexus: fx_reactive_nexus {
                 compatible = "keypaw,rgb-matrix-reactive";
                 #binding-cells = <0>;
-                color = <0xFF0000>;
+                spread = "nexus";
+                color = <0xFF8000>;
                 duration = <500>;
-                spread = "point";
-                background-brightness = <10>;
-                palette = "complement";
+            };
+            fx_reactive_cross: fx_reactive_cross {
+                compatible = "keypaw,rgb-matrix-reactive";
+                #binding-cells = <0>;
+                spread = "cross";
+                color = <0x0080FF>;
+                duration = <500>;
+            };
+            fx_heatmap: fx_heatmap {
+                compatible = "keypaw,rgb-matrix-heatmap";
+                #binding-cells = <0>;
+                spread = <300>;
             };
         };
     };
